@@ -58,22 +58,26 @@ typedef enum ov2640_image_res
 } ov2640_image_res_t;
 
 typedef struct ov2640 {
+	// Handlers and whatnot for STM32 HAL
 	GPIO_TypeDef * spi_cs_port;
 	uint16_t spi_cs_pin;
 	SPI_HandleTypeDef * spi_handler;
 	I2C_HandleTypeDef * i2c_handler;
 
+	// Type of image being captured
 	ov2640_image_type_t image_type;
 	ov2640_image_res_t image_res;
 
+	// Current length of FIFO buffer containing capture data; is non-zero if there is an outstanding capture
 	uint32_t fifo_length;
 
+	// IDs regarding the type of camera
 	uint8_t vid;
 	uint8_t pid;
 } ov2640;
 
-// Setup function
-void ov2640_setup(ov2640 * camera, GPIO_TypeDef * spi_cs_port, uint16_t spi_cs_pin, SPI_HandleTypeDef * spi_handler, I2C_HandleTypeDef * i2c_handler);
+// Setup functions
+void ov2640_setup(ov2640 *camera, GPIO_TypeDef *spi_cs_port, uint16_t spi_cs_pin, SPI_HandleTypeDef * spi_handler, I2C_HandleTypeDef * i2c_handler);
 
 // FIFO (SPI) functions
 void ov2640_spi_select(ov2640 * camera);
@@ -101,7 +105,8 @@ void ov2640_get_capture(ov2640 * camera);
 
 // Image handling functions
 void ov2640_transfer_start(ov2640 * camera);
-uint8_t ov2640_transfer_step(ov2640 * camera, uint8_t buffer[], uint16_t buffer_size, uint16_t * buffer_filled);
+void ov2640_transfer_step(ov2640 * camera, uint8_t buffer[], uint16_t buffer_size, uint16_t * buffer_filled);
+void ov2640_transfer_step_dma(ov2640 * camera, uint8_t buffer[], uint16_t buffer_size, uint16_t *buffer_filled);
 void ov2640_transfer_stop(ov2640 * camera);
 
 // Sanity testing functions to be used at runtime

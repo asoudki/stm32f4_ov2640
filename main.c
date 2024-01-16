@@ -48,6 +48,8 @@
 I2C_HandleTypeDef hi2c1;
 
 SPI_HandleTypeDef hspi1;
+DMA_HandleTypeDef hdma_spi1_rx;
+DMA_HandleTypeDef hdma_spi1_tx;
 
 UART_HandleTypeDef huart2;
 
@@ -58,6 +60,7 @@ UART_HandleTypeDef huart2;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_SPI1_Init(void);
@@ -98,6 +101,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USART2_UART_Init();
   MX_I2C1_Init();
   MX_SPI1_Init();
@@ -128,27 +132,38 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	// Keep trying until a valid capture is taken
+	// Keep trying until a valid capture is taken.
 	while(camera.fifo_length == 0) {
 	  ov2640_get_capture(&camera);
 	}
 
-	// Transfer and print out capture data, one 1000-element buffer at a time.
+	// Transfer and print out capture data, one buffer at a time.
 	ov2640_transfer_start(&camera);
 
+	// Can change buffer_length to camera.fifo_length if the resolution isn't HUGE.
+	// Buffer approach is done for the case where there isn't enough memory to hold the entire image at once.
 	uint16_t buffer_length = 1000;
 
 	while(camera.fifo_length > 0) {
 		uint8_t buffer[buffer_length];
 		uint16_t buffer_filled;
-		uint8_t rc = ov2640_transfer_step(&camera, buffer, buffer_length, &buffer_filled);
 
-		// if anything unexpected happens, throw out the image and take another capture
-		if(rc > 0) {
-			break;
+		uint8_t use_dma = 1;
+		if(use_dma == 1) {
+			ov2640_transfer_step_dma(&camera, buffer, buffer_length, &buffer_filled);
+
+			// Do other things while DMA transfer happens.
+			HAL_Delay(100);
+
+			// update fifo_length when we know dma transfer is done.
+			while (HAL_DMA_GetState(&hdma_spi1_rx) != HAL_DMA_STATE_READY);
+			camera.fifo_length -= buffer_filled;
+		}
+		else {
+			ov2640_transfer_step(&camera, buffer, buffer_length, &buffer_filled);
 		}
 
-		// print out buffer data through Serial
+		// print out buffer data through Serial.
 		for(uint32_t i=0; i<buffer_filled; ++i) {
 			sprintf(msg, "%02X\r\n", buffer[i]);
 			HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
@@ -157,7 +172,7 @@ int main(void)
 
 	ov2640_transfer_stop(&camera);
 
-	// Delay between camera captures
+	// Delay between camera captures.
 	HAL_Delay(5000);
 
   }
@@ -312,6 +327,25 @@ static void MX_USART2_UART_Init(void)
   /* USER CODE BEGIN USART2_Init 2 */
 
   /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA2_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA2_Stream0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
+  /* DMA2_Stream2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
 
 }
 

@@ -2,7 +2,8 @@
 #include "ov2640_regs.h"
 
 // Register all essential port/pin and handler data to perform OV2640 functions
-void ov2640_setup(ov2640 *camera, GPIO_TypeDef *spi_cs_port, uint16_t spi_cs_pin, SPI_HandleTypeDef *spi_handler, I2C_HandleTypeDef *i2c_handler) {
+// Additionally 
+void ov2640_setup(ov2640 *camera, GPIO_TypeDef *spi_cs_port, uint16_t spi_cs_pin, SPI_HandleTypeDef * spi_handler, I2C_HandleTypeDef * i2c_handler) {
     camera->spi_cs_port = spi_cs_port;
     camera->spi_cs_pin = spi_cs_pin;
     camera->spi_handler = spi_handler;
@@ -227,54 +228,46 @@ void ov2640_transfer_start(ov2640 * camera)
 	HAL_SPI_Transmit(camera->spi_handler, &fifo_burst_read, 1, HAL_MAX_DELAY);
 }
 
-// Copies data from the FIFO buffer into a user buffer.
-// Should iterate up to buffer_filled when using the user buffer afterward.
-// A non-zero rc indicates that something abnormal happened during the transfer.
-// TODO: Use DMA for the copies in this function if possible.
-uint8_t ov2640_transfer_step(ov2640 *camera, uint8_t buffer[], uint16_t buffer_size, uint16_t *buffer_filled) {
-    uint8_t rc = 0;
-    static uint8_t curr_byte, prev_byte;
-    uint16_t i = 0;
+// Copies data from the SPI FIFO buffer into a user buffer.
+// buffer_filled is the number of elements in the buffer that actually belong to the image; user buffer is not guaranteed to be 100% filled.
+void ov2640_transfer_step(ov2640 * camera, uint8_t buffer[], uint16_t buffer_size, uint16_t *buffer_filled) 
+{
+	// Determine whether the buffer can get 100% filled and update buffer_filled accordingly
+	if(camera->fifo_length > buffer_size) {
+		*buffer_filled = buffer_size;
+	}
+	else {
+		*buffer_filled = camera->fifo_length;
+	}
 
-    // Insert the start of image pattern in the header into the buffer if edge case 2 occurred on the previous function call.
-    if (curr_byte == 0xD8 && prev_byte == 0xFF) {
-        buffer[0] = 0xFF;
-        buffer[1] = 0xD8;
-        i += 2;
-    }
+	// Receive the maximum amount of data from the SPI FIFO buffer into the user buffer.
+	// If the receive succeeds, update the length of the fifo buffer and move on.
+	if(HAL_SPI_Receive(camera->spi_handler, buffer, *buffer_filled, HAL_MAX_DELAY) == HAL_OK) {
+		camera->fifo_length -= *buffer_filled;
+	}
+	// If the receive fails, throw out the capture data
+	else {
+		ov2640_fifo_clear(camera);
+	}	
+}
 
-    while (i < buffer_size) {
-        // Get the next byte from the FIFO buffer and put it into the input buffer, keeping track of the previous byte.
-        prev_byte = curr_byte;
-        HAL_SPI_Receive(camera->spi_handler, &curr_byte, 1, HAL_MAX_DELAY);
-        buffer[i] = curr_byte;
+// Copies data from the SPI FIFO buffer into a user buffer.
+// buffer_filled is the number of elements in the buffer that actually belong to the image; user buffer is not guaranteed to be 100% filled.
+// This function uses DMA so the transferring can happen asynchronously. Subtract buffer_filled from camera->fifo_length externally once DMA finishes.
+void ov2640_transfer_step_dma(ov2640 * camera, uint8_t buffer[], uint16_t buffer_size, uint16_t *buffer_filled)
+{
+	// Determine whether the buffer can get 100% filled and update buffer_filled accordingly
+	if(camera->fifo_length > buffer_size) {
+		*buffer_filled = buffer_size;
+	}
+	else {
+		*buffer_filled = camera->fifo_length;
+	}
 
-        // Iterating
-        camera->fifo_length--;
-        ++i;
+	// Receive the maximum amount of data from the SPI FIFO buffer into the user buffer.
+	HAL_SPI_Receive_DMA(camera->spi_handler, buffer, *buffer_filled);
 
-        // Expected case: occurs when the FIFO buffer reaches the end of the current image (buffer may or may not be 100% filled).
-        // The function exits, and you handle the size issue by going up to buffer_filled when iterating through the buffer.
-        if (curr_byte == 0xD9 && prev_byte == 0xFF) {
-            break;
-        }
-        // Edge case 1: occurs when the FIFO buffer runs out of image data without receiving the end of the image pattern.
-        // The function exits, but something unexpected happened on the OV2640 side.
-        else if (camera->fifo_length == 0) {
-            rc = 1;
-            break;
-        }
-        // Edge case 2: occurs when the FIFO buffer reaches a start of the image footer before the end of the image pattern of the current image.
-        // The function exits, but the buffer data is now useless. Bytes indicating the start of a new image are preserved for the next function call.
-        else if (curr_byte == 0xD8 && prev_byte == 0xFF && i > 2) {
-            rc = 2;
-            break;
-        }
-    }
-
-    // The number of filled elements in the input buffer is passed back through the iterator.
-    *buffer_filled = i;
-    return rc;
+	// camera->fifo_length should be updated externally when the transfer is complete. Use buffer_filled to do so.
 }
 
 // Perform cleanup after data from FIFO buffer is transferred.
