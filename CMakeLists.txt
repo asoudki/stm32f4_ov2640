@@ -10,5 +10,5 @@ add_definitions(-DUSE_MOCK_HAL)
 add_subdirectory(ov2640)
 # Include the mocks folder
 add_subdirectory(mocks)
-# Include the ov2640_tests folder
-add_subdirectory(ov2640_tests)
+# Include the tests folder
+add_subdirectory(tests)

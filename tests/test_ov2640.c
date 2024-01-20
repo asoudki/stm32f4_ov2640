@@ -1,25 +1,37 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
-//#include <cmocka.h>
+#include <cmocka.h>
 
-//#include "../ov2640/ov2640.h"
+#include "../ov2640/ov2640.h"
 
 #include "hal_mock.h"
 
-/*
 // Test case for ov2640_spi_select
 static void test_ov2640_spi_select(void **state) {
     // Set up any necessary test fixtures or variables
 
     // Call the function to be tested
     ov2640 camera;  // Assuming a structure for ov2640
-    ov2640_spi_select(&camera);
+
+    // HAL Initialization
+    HAL_Init();
+
+    // GPIO Initialization
+    GPIO_InitTypeDef GPIO_InitStruct;
+    GPIO_TypeDef GPIOA;
+    HAL_GPIO_Init(&GPIOA, &GPIO_InitStruct);
+
+    // SPI Initialization?
+    SPI_InitTypeDef SPI_InitStruct;
+    SPI_HandleTypeDef hspi;
+    // Should expand on this once SPI is fully mocked
+
+    //ov2640_spi_select(&camera);
 
     // Add assertions to check the expected behavior
     //assert_int_equal(HAL_GPIO_ReadPin(camera.spi_cs_port, camera.spi_cs_pin), GPIO_PIN_RESET);
 }
-*/
 
 // Additional test cases can be added here
 
@@ -28,10 +40,10 @@ int main(void) {
 
     GPIO_InitTypeDef GPIO_InitStruct;
     GPIO_TypeDef GPIOA;
+    HAL_GPIO_Init(&GPIOA, &GPIO_InitStruct);
+
     uint16_t GPIO_PIN_5 = (1 << 5);
     GPIO_PinState pinState;
-
-    HAL_GPIO_Init(&GPIOA, &GPIO_InitStruct);
 
     pinState = HAL_GPIO_ReadPin(&GPIOA, GPIO_PIN_5);
     if (pinState == GPIO_PIN_SET) {
