@@ -47,7 +47,7 @@ while True:
     data = b"".join(img)
 
     # write current image
-    with open(f"recv_image_{i}.jpg", "wb") as f:
+    with open(f"test_images/recv_image_{i}.jpg", "wb") as f:
         f.write(data)
     i = i+1
  
