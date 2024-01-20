@@ -1,3 +1,5 @@
+# mocks/CMakeLists.txt
+
 # Assuming this directory contains source files (.c)
 add_library(hal_mock_general_lib hal_mock_general.c hal_mock_general.h)
 add_library(hal_mock_gpio_lib hal_mock_gpio.c hal_mock_gpio.h)

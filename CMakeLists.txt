@@ -6,9 +6,7 @@ project(ov2640_project)
 # Define USE_MOCK_HAL when using test build
 add_definitions(-DUSE_MOCK_HAL)
 
-# Include the ov2640 folder
+# Include subdirectories
 add_subdirectory(ov2640)
-# Include the mocks folder
 add_subdirectory(mocks)
-# Include the tests folder
 add_subdirectory(tests)

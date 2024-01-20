@@ -4,7 +4,6 @@
 
 // Common STD libraries to include
 #include <stdint.h>
-#include <stdio.h>
 #include <unistd.h>
 
 // Mocked general HAL defines/macros

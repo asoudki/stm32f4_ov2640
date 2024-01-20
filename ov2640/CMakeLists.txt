@@ -1,3 +1,5 @@
+# ov2640/CMakeLists.txt
+
 # Set your source files
 set(SOURCES
     ov2640.c

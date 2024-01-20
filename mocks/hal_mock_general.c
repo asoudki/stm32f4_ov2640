@@ -12,16 +12,20 @@ void HAL_Init(void) {
 }
 
 void HAL_Delay(uint32_t Delay) {
-  // Mock implementation for HAL_Delay
-  // Simulate the passage of time
-  uint32_t startTime = hal_current_time;
-  uint32_t elapsedTime = 0;
+  // Check if the HAL has been left uninitialized
+  if(!hal_initialized) {
+    // Mock implementation: Handle uninitialized HAL as needed (exit early).
+    return;  // Exit early for an uninitialized HAL
+  }
 
-  while (elapsedTime < Delay) {
-    // Adjust the simulated time resolution based on your requirements
-    // Here, we simulate 1 millisecond intervals
-    elapsedTime = hal_current_time - startTime;
-    usleep(1000);  // Simulate 1 millisecond delay
+  // Mock implementation for HAL_Delay
+
+  uint32_t startTime = hal_current_time;
+
+  // Simulate the passage of time
+  for(uint32_t elapsedTime=0; elapsedTime<Delay; elapsedTime++) {
+    // Simulate 1 millisecond delay
+    usleep(1000);
     hal_current_time++;
   }
 }
