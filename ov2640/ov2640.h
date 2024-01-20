@@ -3,13 +3,18 @@
 
 // sensor_reg definition must come before ov2640_regs.h inclusion, as ov2640_regs.h uses this definition
 #include <stdint.h>
-// is uint16_t just an error I carried over?
+
 struct sensor_reg {
 	uint8_t reg;
 	uint8_t val;
 };
 
+#ifdef USE_MOCK_HAL
+#include "../mocks/hal_mock.h"
+#else
 #include "stm32f4xx_hal.h"
+#endif
+
 #include "ov2640_regs.h"
 
 
