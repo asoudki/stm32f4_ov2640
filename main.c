@@ -111,7 +111,7 @@ int main(void)
   // buffer for UART transfers
   char msg[6];
 
-  ov2640_setup(&camera, GPIOA, GPIO_PIN_8, &hspi1, &hi2c1);
+  ov2640_register(&camera, GPIOA, GPIO_PIN_8, &hspi1, &hi2c1);
 
   // Check the outcomes of these tests using the debugger to see if the camera works properly
   uint8_t i2c_test = ov2640_test_i2c(&camera);

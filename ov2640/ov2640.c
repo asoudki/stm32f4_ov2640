@@ -3,7 +3,7 @@
 
 // Register all essential port/pin and handler data to perform OV2640 functions
 // Additionally 
-void ov2640_setup(ov2640 *camera, GPIO_TypeDef *spi_cs_port, uint16_t spi_cs_pin, SPI_HandleTypeDef * spi_handler, I2C_HandleTypeDef * i2c_handler) {
+void ov2640_register(ov2640 *camera, GPIO_TypeDef *spi_cs_port, uint16_t spi_cs_pin, SPI_HandleTypeDef * spi_handler, I2C_HandleTypeDef * i2c_handler) {
     camera->spi_cs_port = spi_cs_port;
     camera->spi_cs_pin = spi_cs_pin;
     camera->spi_handler = spi_handler;

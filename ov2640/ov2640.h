@@ -82,7 +82,7 @@ typedef struct ov2640 {
 } ov2640;
 
 // Setup functions
-void ov2640_setup(ov2640 *camera, GPIO_TypeDef *spi_cs_port, uint16_t spi_cs_pin, SPI_HandleTypeDef * spi_handler, I2C_HandleTypeDef * i2c_handler);
+void ov2640_register(ov2640 *camera, GPIO_TypeDef *spi_cs_port, uint16_t spi_cs_pin, SPI_HandleTypeDef * spi_handler, I2C_HandleTypeDef * i2c_handler);
 
 // FIFO (SPI) functions
 void ov2640_spi_select(ov2640 * camera);
