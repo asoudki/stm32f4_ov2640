@@ -2,111 +2,87 @@
 
 // Test case: Verify that hal_initialized starts at 0
 void test_hal_mock_hal_init_starts_at_zero(void **state) {
-    // Unused parameter
-    (void)state;
+    // Arrange: No specific arrangement needed, as the default value of hal_initialized is 0
 
-    // Arrange
-    // hal_initialized should be 0 by default
+    // Act: No specific action needed for this test case
 
-    // Act
-    // No action needed for this test case
-
-    // Assert
+    // Assert: Verify that hal_initialized is 0
     assert_int_equal(hal_initialized, 0);
 }
 
 // Test case: Verify that calling HAL_Init changes hal_initialized from 0 to 1
 void test_hal_mock_hal_init_changes_initialized(void **state) {
-    // Unused parameter
-    (void)state;
+    // Arrange: Set hal_initialized to 0 to simulate uninitialized state
 
-    // Arrange
-    hal_initialized = 0;
-
-    // Act
+    // Act: Initialize HAL
     HAL_Init();
 
-    // Assert
+    // Assert: Verify that hal_initialized is changed to 1
     assert_int_equal(hal_initialized, 1);
 }
 
 // Test Case: Delay for 0 milliseconds
 void test_hal_mock_delay_zero(void **state) {
-    // Unused parameter
-    (void)state;
-
-    // Arrange
+    // Arrange: Record the current time
     uint32_t t_start = hal_current_time;
 
-    // Act
+    // Act: Initialize HAL and perform delay for 0 milliseconds
     HAL_Init();
     HAL_Delay(0);
 
-    // Assert
+    // Assert: Verify that time remains unchanged
     assert_int_equal(hal_current_time, t_start);
 }
 
 // Test Case: Delay for a short duration
 void test_hal_mock_delay_short_duration(void **state) {
-    // Unused parameter
-    (void)state;
-
-    // Arrange
+    // Arrange: Record the current time
     uint32_t t_start = hal_current_time;
 
-    // Act
+    // Act: Initialize HAL and perform delay for 10 milliseconds
     HAL_Init();
     HAL_Delay(10);
 
-    // Assert
+    // Assert: Verify that time has advanced by 10 milliseconds
     assert_int_equal(hal_current_time, t_start + 10);
 }
 
 // Test Case: Delay for a longer duration
 void test_hal_mock_delay_long_duration(void **state) {
-    // Unused parameter
-    (void)state;
-
-    // Arrange
+    // Arrange: Record the current time
     uint32_t t_start = hal_current_time;
 
-    // Act
+    // Act: Initialize HAL and perform delay for 1000 milliseconds
     HAL_Init();
     HAL_Delay(1000);
 
-    // Assert
+    // Assert: Verify that time has advanced by 1000 milliseconds
     assert_int_equal(hal_current_time, t_start + 1000);
 }
 
 // Test Case: Call delay consecutively
 void test_hal_mock_delay_consecutive(void **state) {
-    // Unused parameter
-    (void)state;
-
-    // Arrange
+    // Arrange: Record the current time
     uint32_t t_start = hal_current_time;
 
-    // Act
+    // Act: Initialize HAL and perform two consecutive delays for 10 milliseconds each
     HAL_Init();
     HAL_Delay(10);
     HAL_Delay(10);
 
-    // Assert
+    // Assert: Verify that time has advanced by 20 milliseconds
     assert_int_equal(hal_current_time, t_start + 20);
 }
 
 // Test Case: Call delay before initializing HAL (No delay should happen)
 void test_hal_mock_delay_no_hal_init(void **state) {
-    // Unused parameter
-    (void)state;
-
-    // Arrange
+    // Arrange: Set hal_initialized to 0 to simulate uninitialized state, Record the current time
     hal_initialized = 0;
     uint32_t t_start = hal_current_time;
 
-    // Act
+    // Act: Attempt to perform a delay without initializing HAL
     HAL_Delay(100);
 
-    // Assert
+    // Assert: Verify that time remains unchanged
     assert_int_equal(hal_current_time, t_start);
 }

@@ -1,13 +1,22 @@
 # mocks/CMakeLists.txt
 
-# Assuming this directory contains source files (.c)
-add_library(hal_mock_general_lib hal_mock_general.c hal_mock_general.h)
-add_library(hal_mock_gpio_lib hal_mock_gpio.c hal_mock_gpio.h)
-add_library(hal_mock_i2c_lib hal_mock_i2c.c hal_mock_i2c.h)
-add_library(hal_mock_spi_lib hal_mock_spi.c hal_mock_spi.h)
+# Define a list of mock library names without _lib extension
+set(MOCK_LIBRARIES
+    hal_mock_general
+    hal_mock_gpio
+    hal_mock_i2c
+    hal_mock_spi
+    # Add more mock libraries as needed
+)
 
-# Add include directories
-target_include_directories(hal_mock_general_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories(hal_mock_gpio_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories(hal_mock_i2c_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories(hal_mock_spi_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+# Loop through the list of mock libraries
+foreach(MOCK_LIBRARY ${MOCK_LIBRARIES})
+    # Create a variable for the library name with _lib extension
+    set(LIBRARY_NAME ${MOCK_LIBRARY}_lib)
+
+    # Add the mock library target
+    add_library(${LIBRARY_NAME} ${MOCK_LIBRARY}.c ${MOCK_LIBRARY}.h)
+
+    # Add include directories for the mock library
+    target_include_directories(${LIBRARY_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+endforeach()

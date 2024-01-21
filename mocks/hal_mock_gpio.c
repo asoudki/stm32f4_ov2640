@@ -81,6 +81,6 @@ void HAL_GPIO_WritePin(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, GPIO_PinState Pin
       // Set BSRR to simulate pin reset.
       GPIOx->BSRR = (uint32_t)GPIO_Pin << 16U;
       // Set IDR to match ODR after some delay (skipped for brevity).
-      GPIOx->IDR &= GPIO_Pin;
+      GPIOx->IDR &= ~GPIO_Pin;
     }
 }

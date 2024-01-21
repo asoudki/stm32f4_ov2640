@@ -15,7 +15,7 @@ void HAL_Delay(uint32_t Delay) {
   // Check if the HAL has been left uninitialized
   if(!hal_initialized) {
     // Mock implementation: Handle uninitialized HAL as needed (exit early).
-    return;  // Exit early for an uninitialized HAL
+    return;  // Exit for an uninitialized HAL
   }
 
   // Mock implementation for HAL_Delay
