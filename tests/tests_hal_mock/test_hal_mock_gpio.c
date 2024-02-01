@@ -33,6 +33,18 @@ void test_hal_mock_gpio_init_sets_regs(void **state) {
     assert_int_equal(GPIO_Port.BSRR, 0);
 }
 
+// Test case: Verify behavior for null GPIO_TypeDef or GPIO_InitTypeDef in HAL_GPIO_Init
+void test_hal_mock_gpio_init_null_input(void **state) {
+    // Arrange: Initialize HAL
+    hal_initialized = 1;
+
+    // Act & Assert: Test with null GPIO_TypeDef
+    assert_int_equal(HAL_GPIO_Init(NULL, &GPIO_InitStruct), HAL_ERROR);
+
+    // Act & Assert: Test with null GPIO_InitTypeDef
+    assert_int_equal(HAL_GPIO_Init(&GPIO_Port, NULL), HAL_ERROR);
+}
+
 // Test case: Attempt to initialize GPIO before initializing HAL (Should return HAL_ERROR and IDR/ODR/BSRR are unchanged)
 void test_hal_mock_gpio_init_no_hal_init(void **state) {
     // Arrange: Set HAL as uninitialized and set initial values for GPIO registers
@@ -114,6 +126,21 @@ void test_hal_mock_read_pin_invalid_pin(void **state) {
     assert_int_equal(result, GPIO_PIN_RESET);
 }
 
+// Test case: Verify behavior for null GPIO_TypeDef in HAL_GPIO_ReadPin
+void test_hal_mock_read_pin_null_input(void **state) {
+    // Arrange: Initialize HAL and set initial values for GPIO registers
+    hal_initialized = 1;
+    GPIO_Port.IDR = GPIO_PIN_All;
+    GPIO_Port.ODR = GPIO_PIN_All;
+    GPIO_Port.BSRR = GPIO_PIN_0;
+
+    // Act: Attempt to read a pin with null GPIO_TypeDef
+    GPIO_PinState result = HAL_GPIO_ReadPin(NULL, GPIO_PIN_5);
+
+    // Assert: Read should return 0 even though the pin is 1 because null GPIO_TypeDef was provided
+    assert_int_equal(result, GPIO_PIN_RESET);
+}
+
 // Test case: Verify behavior when reading a pin with uninitialized HAL
 void test_hal_mock_read_pin_no_hal_init(void **state) {
     // Arrange: Set HAL as uninitialized and set initial values for GPIO registers
@@ -125,7 +152,7 @@ void test_hal_mock_read_pin_no_hal_init(void **state) {
     // Act: Read the state of a GPIO pin
     GPIO_PinState result = HAL_GPIO_ReadPin(&GPIO_Port, GPIO_PIN_5);
 
-    // Assert: Verify the function returns the default pin state (GPIO_PIN_RESET) when HAL is uninitialized
+    // Assert: Read should return 0 even though the pin is 1 because HAL is not initialized
     assert_int_equal(result, GPIO_PIN_RESET);
 }
 
@@ -199,6 +226,23 @@ void test_hal_mock_write_pin_invalid_pin(void **state) {
     // Assert: Verify that writing to an invalid pin has no effect on IDR, ODR, and BSRR
     assert_int_equal(GPIO_Port.IDR, GPIO_PIN_RESET);
     assert_int_equal(GPIO_Port.ODR, GPIO_PIN_RESET);
+    assert_int_equal(GPIO_Port.BSRR, GPIO_PIN_0);
+}
+
+// Test case: Verify behavior for null GPIO_TypeDef in HAL_GPIO_WritePin
+void test_hal_mock_write_pin_null_input(void **state) {
+    // Arrange: Initialize HAL and set initial values for GPIO registers
+    hal_initialized = 1;
+    GPIO_Port.IDR = GPIO_PIN_RESET;
+    GPIO_Port.ODR = GPIO_PIN_RESET;
+    GPIO_Port.BSRR = GPIO_PIN_0;
+
+    // Act: Attempt to write to a pin with null GPIO_TypeDef
+    HAL_GPIO_WritePin(NULL, GPIO_PIN_5, GPIO_PIN_SET);
+
+    // Assert: Verify that writing to a pin with null GPIO_TypeDef has no effect on IDR, ODR, and BSRR
+    assert_int_equal(GPIO_Port.IDR, 0);
+    assert_int_equal(GPIO_Port.ODR, 0);
     assert_int_equal(GPIO_Port.BSRR, GPIO_PIN_0);
 }
 

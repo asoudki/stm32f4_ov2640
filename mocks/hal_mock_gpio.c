@@ -2,6 +2,11 @@
 
 HAL_StatusTypeDef HAL_GPIO_Init(GPIO_TypeDef* GPIOx, GPIO_InitTypeDef* GPIO_Init)
 {
+    if(GPIO_Init == NULL || GPIOx == NULL) {
+      // Mock implementation: Handle invalid GPIO_Init as needed (return error value).
+      return HAL_ERROR;  // Return error value for an invalid GPIO_Init.
+    }
+
     // Check if the HAL has been left uninitialized
     if(!hal_initialized) {
       // Mock implementation: Handle uninitialized HAL as needed (return error value).
@@ -20,6 +25,11 @@ HAL_StatusTypeDef HAL_GPIO_Init(GPIO_TypeDef* GPIOx, GPIO_InitTypeDef* GPIO_Init
 
 GPIO_PinState HAL_GPIO_ReadPin(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin)
 {
+    if(GPIOx == NULL) {
+      // Mock implementation: Handle invalid GPIOx as needed (return a default value).
+      return GPIO_PIN_RESET;  // Return a default value for an invalid GPIOx.
+    }
+
     // Check if the HAL has been left uninitialized
     if(!hal_initialized) {
       // Mock implementation: Handle uninitialized HAL as needed (return a default value).
@@ -50,6 +60,11 @@ GPIO_PinState HAL_GPIO_ReadPin(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin)
 
 void HAL_GPIO_WritePin(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, GPIO_PinState PinState)
 {
+    if(GPIOx == NULL) {
+      // Mock implementation: Handle invalid GPIOx as needed (exit early).
+      return;  // Exit early for an invalid GPIOx.
+    }
+
     // Check if the HAL has been left uninitialized
     if(!hal_initialized) {
       // Mock implementation: Handle uninitialized HAL as needed (exit early).
