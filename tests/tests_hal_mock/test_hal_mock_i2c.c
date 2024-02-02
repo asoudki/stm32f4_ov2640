@@ -1,17 +1,61 @@
 #include "test_hal_mock_i2c.h"
 
+// Defiinition of test arrays
+
+// common_i2c_checks Tests
+const struct CMUnitTest common_i2c_checks_tests[NUM_COMMON_I2C_CHECKS_TESTS] = {
+    cmocka_unit_test(test_common_i2c_checks_returns_ok),
+    cmocka_unit_test(test_common_i2c_checks_null_input),
+    cmocka_unit_test(test_common_i2c_checks_no_hal_init),
+    cmocka_unit_test(test_common_i2c_checks_invalid_instance),
+    cmocka_unit_test(test_common_i2c_checks_handle_busy),
+};
+
+// Reset_I2C_Handle Tests
+const struct CMUnitTest hal_mock_reset_i2c_handle_tests[NUM_HAL_MOCK_RESET_I2C_HANDLE_TESTS] = {
+    cmocka_unit_test(test_hal_mock_reset_i2c_handle_changes_state),
+    cmocka_unit_test(test_hal_mock_reset_i2c_handle_changes_mode),
+    cmocka_unit_test(test_hal_mock_reset_i2c_handle_from_error),
+    cmocka_unit_test(test_hal_mock_reset_i2c_handle_left_unlocked),
+    cmocka_unit_test(test_hal_mock_reset_i2c_handle_clears_buffer),
+    cmocka_unit_test(test_hal_mock_reset_i2c_handle_resets_instance),
+    cmocka_unit_test(test_hal_mock_reset_i2c_handle_keeps_init),
+    cmocka_unit_test(test_hal_mock_reset_i2c_handle_repeat_reset),
+};
+
+// HAL_I2C_Init Tests
+const struct CMUnitTest hal_mock_i2c_init_tests[NUM_HAL_MOCK_INIT_TESTS] = {
+    cmocka_unit_test(test_hal_mock_i2c_init_changes_state),
+    cmocka_unit_test(test_hal_mock_i2c_init_changes_mode),
+    cmocka_unit_test(test_hal_mock_i2c_init_from_error),
+    cmocka_unit_test(test_hal_mock_i2c_init_left_unlocked),
+    cmocka_unit_test(test_hal_mock_i2c_init_clears_buffer),
+    cmocka_unit_test(test_hal_mock_i2c_init_keeps_init),
+    cmocka_unit_test(test_hal_mock_i2c_init_resets_instance),
+    cmocka_unit_test(test_hal_mock_i2c_init_already_initialized),
+    cmocka_unit_test(test_hal_mock_i2c_init_repeat_init),
+};
+
+// HAL_I2C_DeInit Tests
+const struct CMUnitTest hal_mock_i2c_deinit_tests[NUM_HAL_MOCK_DEINIT_TESTS] = {
+    cmocka_unit_test(test_hal_mock_i2c_deinit_changes_state),
+    cmocka_unit_test(test_hal_mock_i2c_deinit_changes_mode),
+    cmocka_unit_test(test_hal_mock_i2c_deinit_from_error),
+    cmocka_unit_test(test_hal_mock_i2c_deinit_left_unlocked),
+    cmocka_unit_test(test_hal_mock_i2c_deinit_clears_buffer),
+    cmocka_unit_test(test_hal_mock_i2c_deinit_keeps_init),
+    cmocka_unit_test(test_hal_mock_i2c_deinit_resets_instance),
+    cmocka_unit_test(test_hal_mock_i2c_deinit_busy_peripheral),
+    cmocka_unit_test(test_hal_mock_i2c_deinit_repeat_deinit),
+};
 
 // Required structs for I2C
 I2C_TypeDef I2C1;
-I2C_TypeDef I2C2;
-I2C_TypeDef I2C3;
-
 I2C_HandleTypeDef hi2c1;
-I2C_HandleTypeDef hi2c2;
-I2C_HandleTypeDef hi2c3;
 
 // Helper function that sets an I2C handle to a default state
-static void set_i2c_default_state(I2C_HandleTypeDef *hi2c, I2C_TypeDef *i2cInstance) {
+static void set_i2c_default_state(I2C_HandleTypeDef *hi2c, I2C_TypeDef *i2cInstance)
+{
     if(hi2c == NULL || i2cInstance == NULL) {
         return;
     }
@@ -48,8 +92,28 @@ static void set_i2c_default_state(I2C_HandleTypeDef *hi2c, I2C_TypeDef *i2cInsta
     hi2c->ErrorCode = HAL_I2C_ERROR_NONE;
 }
 
+// Run all I2C tests
+void run_hal_mock_i2c_tests()
+{
+    int status = 0;
+    
+    status += cmocka_run_group_tests(common_i2c_checks_tests, NULL, NULL);
+    status += cmocka_run_group_tests(hal_mock_reset_i2c_handle_tests, NULL, NULL);
+    status += cmocka_run_group_tests(hal_mock_i2c_init_tests, NULL, NULL);
+    status += cmocka_run_group_tests(hal_mock_i2c_deinit_tests, NULL, NULL);
+    /*
+    status += cmocka_run_group_tests(hal_mock_master_transmit_tests, NULL, NULL);
+    status += cmocka_run_group_tests(hal_mock_master_receive_tests, NULL, NULL);
+    status += cmocka_run_group_tests(hal_mock_slave_transmit_tests, NULL, NULL);
+    status += cmocka_run_group_tests(hal_mock_slave_receive_tests, NULL, NULL);
+    */
+
+   assert_int_equal(status, 0);
+}
+
 // Test Case: Verify that common_i2c_checks passes for an appropriately configured I2C handle
-void test_common_i2c_checks_returns_ok(void **state) {
+void test_common_i2c_checks_returns_ok(void **state)
+{
     // Arrange: Initialize HAL and set I2C handle and instance to a default state
     hal_initialized = 1;
     set_i2c_default_state(&hi2c1, &I2C1);
@@ -63,7 +127,8 @@ void test_common_i2c_checks_returns_ok(void **state) {
 }
 
 // Test Case: Verify that common_i2c_checks fails when a null I2C handle is passed
-void test_common_i2c_checks_null_input(void **state) {
+void test_common_i2c_checks_null_input(void **state)
+{
     // Arrange: Initialize HAL
     hal_initialized = 1;
 
@@ -75,7 +140,8 @@ void test_common_i2c_checks_null_input(void **state) {
 }
 
 // Test Case: Verify that common_i2c_checks fails when HAL is not initialized
-void test_common_i2c_checks_no_hal_init(void **state) {
+void test_common_i2c_checks_no_hal_init(void **state)
+{
     // Arrange: Uninitialize HAL and set I2C handle and instance to a default state
     hal_initialized = 0;
     set_i2c_default_state(&hi2c1, &I2C1);
@@ -89,7 +155,8 @@ void test_common_i2c_checks_no_hal_init(void **state) {
 }
 
 // Test Case: Verify that common_i2c_checks fails when an invalid I2C instance is passed
-void test_common_i2c_checks_invalid_instance(void **state) {
+void test_common_i2c_checks_invalid_instance(void **state)
+{
     // Arrange: Initialize HAL and set a I2C handler with a null instance
     hal_initialized = 1;
     set_i2c_default_state(&hi2c1, &I2C1);
@@ -104,7 +171,8 @@ void test_common_i2c_checks_invalid_instance(void **state) {
 }
 
 // Test Case: Verify that common_i2c_checks fails when the I2C handle is busy (indicated by the lock)
-void test_common_i2c_checks_handle_busy(void **state) {
+void test_common_i2c_checks_handle_busy(void **state)
+{
     // Arrange: Initialize HAL and set I2C handle and instance to a default state, then set the lock to HAL_LOCKED to indicate busyness
     hal_initialized = 1;
     I2C_HandleTypeDef hi2c1;
@@ -120,7 +188,8 @@ void test_common_i2c_checks_handle_busy(void **state) {
 }
 
 // Test Case: Verify that Reset_I2C_Handle changes the state of the I2C handle from HAL_I2C_STATE_READY to HAL_I2C_STATE_RESET
-void test_hal_mock_reset_i2c_handle_changes_state(void **state) {
+void test_hal_mock_reset_i2c_handle_changes_state(void **state)
+{
     // Arrange: Initialize HAL and set I2C handle and instance to a default state with state HAL_I2C_STATE_READY
     hal_initialized = 1;
     set_i2c_default_state(&hi2c1, &I2C1);
@@ -135,7 +204,8 @@ void test_hal_mock_reset_i2c_handle_changes_state(void **state) {
 }
 
 // Test Case: Verify that Reset_I2C_Handle changes the mode of the I2C handle to HAL_I2C_MODE_NONE
-void test_hal_mock_reset_i2c_handle_changes_mode(void **state) {
+void test_hal_mock_reset_i2c_handle_changes_mode(void **state)
+{
     // Arrange: Initialize HAL and set I2C handle and instance to a default state with different mode
     hal_initialized = 1;
     set_i2c_default_state(&hi2c1, &I2C1);
@@ -169,7 +239,8 @@ void test_hal_mock_reset_i2c_handle_from_error(void **state)
 }
 
 // Test Case: Verify that Reset_I2C_Handle leaves the I2C handle unlocked after use
-void test_hal_mock_reset_i2c_handle_left_unlocked(void **state) {
+void test_hal_mock_reset_i2c_handle_left_unlocked(void **state) 
+{
     // Arrange: Initialize HAL and set I2C handle and instance to a default state
     hal_initialized = 1;
     set_i2c_default_state(&hi2c1, &I2C1);
@@ -183,7 +254,8 @@ void test_hal_mock_reset_i2c_handle_left_unlocked(void **state) {
 }
 
 // Test Case: Verify that Reset_I2C_Handle clears the xfer buffer in the I2C handle
-void test_hal_mock_reset_i2c_handle_clears_buffer(void **state) {
+void test_hal_mock_reset_i2c_handle_clears_buffer(void **state) 
+{
     // Arrange: Initialize HAL and set I2C handle and instance to a default state, then fill the buffer with non-zero values
     hal_initialized = 1;
     set_i2c_default_state(&hi2c1, &I2C1);
@@ -206,7 +278,8 @@ void test_hal_mock_reset_i2c_handle_clears_buffer(void **state) {
 }
 
 // Test Case: Verify that Reset_I2C_Handle resets the I2C instance to a default state
-void test_hal_mock_reset_i2c_handle_resets_instance(void **state) {
+void test_hal_mock_reset_i2c_handle_resets_instance(void **state)
+{
     // Arrange: Initialize HAL and set I2C handle and instance to a default state, then fill the instance with non-zero values
     hal_initialized = 1;
     set_i2c_default_state(&hi2c1, &I2C1);
@@ -264,7 +337,8 @@ void test_hal_mock_reset_i2c_handle_keeps_init(void **state)
 }
 
 // Test Case: Verify that Reset_I2C_Handle can be called multiple times without breaking
-void test_hal_mock_reset_i2c_handle_repeat_reset(void **state) {
+void test_hal_mock_reset_i2c_handle_repeat_reset(void **state)
+{
     // Arrange: Initialize HAL and set I2C handle and instance to a non-default state
     hal_initialized = 1;
     set_i2c_default_state(&hi2c1, &I2C1);

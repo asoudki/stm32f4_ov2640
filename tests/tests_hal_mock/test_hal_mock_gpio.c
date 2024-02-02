@@ -1,8 +1,48 @@
 #include "test_hal_mock_gpio.h"
 
+// Definition of test arrays
+
+// HAL_GPIO_Init Tests
+const struct CMUnitTest hal_mock_gpio_init_tests[NUM_HAL_MOCK_GPIO_INIT_TESTS] = {
+    cmocka_unit_test(test_hal_mock_gpio_init_returns_ok),
+    cmocka_unit_test(test_hal_mock_gpio_init_sets_regs),
+    cmocka_unit_test(test_hal_mock_gpio_init_null_input),
+    cmocka_unit_test(test_hal_mock_gpio_init_no_hal_init),
+};
+
+// HAL_GPIO_ReadPin Tests
+const struct CMUnitTest hal_mock_read_pin_tests[NUM_HAL_MOCK_READ_PIN_TESTS] = {
+    cmocka_unit_test(test_hal_mock_read_pin_reset_state),
+    cmocka_unit_test(test_hal_mock_read_pin_set_state),
+    cmocka_unit_test(test_hal_mock_read_pin_multiple),
+    cmocka_unit_test(test_hal_mock_read_pin_invalid_pin),
+    cmocka_unit_test(test_hal_mock_read_pin_null_input),
+    cmocka_unit_test(test_hal_mock_read_pin_no_hal_init),
+};
+
+// HAL_GPIO_WritePin Tests
+const struct CMUnitTest hal_mock_write_pin_tests[NUM_HAL_MOCK_WRITE_PIN_TESTS] = {
+    cmocka_unit_test(test_hal_mock_write_pin_set_state),
+    cmocka_unit_test(test_hal_mock_write_pin_reset_state),
+    cmocka_unit_test(test_hal_mock_write_pin_multiple),
+    cmocka_unit_test(test_hal_mock_write_pin_invalid_pin),
+    cmocka_unit_test(test_hal_mock_write_pin_null_input),
+    cmocka_unit_test(test_hal_mock_write_pin_no_hal_init),
+};
+
 // Required structs for GPIO
 GPIO_TypeDef GPIO_Port;
 GPIO_InitTypeDef GPIO_InitStruct;
+
+void run_hal_mock_gpio_tests(void) {
+    int status = 0;
+
+    status += cmocka_run_group_tests(hal_mock_gpio_init_tests, NULL, NULL);
+    status += cmocka_run_group_tests(hal_mock_read_pin_tests, NULL, NULL);
+    status += cmocka_run_group_tests(hal_mock_write_pin_tests, NULL, NULL);
+
+    assert_int_equal(status, 0);
+}
 
 // Test case: Verify that GPIO initialization returns HAL_OK when HAL is initialized first
 void test_hal_mock_gpio_init_returns_ok(void **state) {
