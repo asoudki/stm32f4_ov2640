@@ -18,7 +18,8 @@
 #define HAL_I2C_ERROR_INVALID_INSTANCE  0x00000020U    // Invalid I2C instance error
 #define HAL_I2C_ERROR_BUSY              0x00000080U    // I2C busy error     
 #define HAL_I2C_ERROR_ALREADY_INITIALIZED 0x00000100U  // I2C already initialized error
-
+#define HAL_I2C_ERROR_INVALID_SLAVE     0x00000200U    // Invalid slave device error
+#define HAL_I2C_ERROR_NULL_PARAM        0x00000400U    // Null parameter error
 
 // Defines used for mock implementation
 #define HAL_I2C_MOCK_BUFFER_SIZE        256U            // Maximum buffer size for mocked I2C transfers
@@ -26,14 +27,7 @@
 // I2C peripheral mock structure
 typedef struct {
     uint8_t DR;                                       // Data Register: Simulates data transmission and reception
-    uint32_t SR;                                      // Status Register: Optional, for detailed hardware-level statuses
     uint16_t OAR;                                     // Own Address Register: Device's own address in slave mode or target address in master mode
-    uint32_t ErrorFlags;                              // Error Flags: Simulates detailed hardware-level error conditions
-    struct {
-        uint16_t TargetAddress;                       // Transaction Target Address: Address of the target device in master mode
-        uint32_t ReadWrite;                           // Transaction Read/Write Flag: Indicates read or write operation
-        uint32_t DataSize;                            // Transaction Data Size: Size of data to be transferred
-    } TransactionInfo;                                // Transaction Information: Details about the ongoing transaction in master mode
 } I2C_TypeDef;
 
 // I2C initialization structure
@@ -56,13 +50,6 @@ typedef enum
   HAL_I2C_STATE_BUSY              = 0x24U,   /*!< An internal process is ongoing            */
   HAL_I2C_STATE_BUSY_TX           = 0x21U,   /*!< Data Transmission process is ongoing      */
   HAL_I2C_STATE_BUSY_RX           = 0x22U,   /*!< Data Reception process is ongoing         */
-  HAL_I2C_STATE_LISTEN            = 0x28U,   /*!< Address Listen Mode is ongoing            */
-  HAL_I2C_STATE_BUSY_TX_LISTEN    = 0x29U,   /*!< Address Listen Mode and Data Transmission
-                                                 process is ongoing                         */
-  HAL_I2C_STATE_BUSY_RX_LISTEN    = 0x2AU,   /*!< Address Listen Mode and Data Reception
-                                                 process is ongoing                         */
-  HAL_I2C_STATE_ABORT             = 0x60U,   /*!< Abort user request ongoing                */
-  HAL_I2C_STATE_TIMEOUT           = 0xA0U,   /*!< Timeout state                             */
   HAL_I2C_STATE_ERROR             = 0xE0U    /*!< Error                                     */
 } HAL_I2C_StateTypeDef;
 
@@ -72,14 +59,13 @@ typedef enum
   HAL_I2C_MODE_NONE               = 0x00U,   /*!< No I2C communication on going             */
   HAL_I2C_MODE_MASTER             = 0x10U,   /*!< I2C communication is in Master Mode       */
   HAL_I2C_MODE_SLAVE              = 0x20U,   /*!< I2C communication is in Slave Mode        */
-  HAL_I2C_MODE_MEM                = 0x40U    /*!< I2C communication is in Memory Mode       */
 } HAL_I2C_ModeTypeDef;
 
 // I2C handle structure
 typedef struct {
     I2C_TypeDef                 *Instance;                        // I2C registers base address
     I2C_InitTypeDef             Init;                             // I2C communication parameters
-    uint8_t                     pBuff[HAL_I2C_MOCK_BUFFER_SIZE];  // I2C transfer buffer
+    uint8_t                     *pBuff;                           // I2C transfer buffer pointer
     uint16_t                    XferSize;                         // I2C transfer size
     __IO uint16_t               XferCount;                        // I2C transfer counter
     HAL_LockTypeDef             Lock;                             // I2C locking object
@@ -88,15 +74,24 @@ typedef struct {
     __IO uint32_t               ErrorCode;                        // I2C Error code
 } I2C_HandleTypeDef;
 
+// I2C slave mock instance
+typedef struct {
+    uint16_t Address;    // Slave device address
+    uint8_t *Buffer;     // Pointer to data buffer
+    uint16_t Size;       // Size of data buffer
+} I2C_Mock_Slave;
+
 // Functions specific to the mock implementation
 HAL_StatusTypeDef Reset_I2C_Handle(I2C_HandleTypeDef *hi2c);
+void Reset_I2C_Mock_Slave(void);
+I2C_Mock_Slave Get_I2C_Mock_Slave(void);
+HAL_StatusTypeDef Set_I2C_Mock_Slave(I2C_HandleTypeDef *hi2c, uint16_t DevAddress, uint8_t *pData, uint16_t Size);
+void Inject_I2C_Transaction_Error(uint32_t ErrorCode);
 
 // Mock function declarations
 HAL_StatusTypeDef HAL_I2C_Init(I2C_HandleTypeDef *hi2c);
 HAL_StatusTypeDef HAL_I2C_DeInit(I2C_HandleTypeDef *hi2c);
 HAL_StatusTypeDef HAL_I2C_Master_Transmit(I2C_HandleTypeDef *hi2c, uint16_t DevAddress, uint8_t *pData, uint16_t Size, uint32_t Timeout);
 HAL_StatusTypeDef HAL_I2C_Master_Receive(I2C_HandleTypeDef *hi2c, uint16_t DevAddress, uint8_t *pData, uint16_t Size, uint32_t Timeout);
-HAL_StatusTypeDef HAL_I2C_Slave_Transmit(I2C_HandleTypeDef *hi2c, uint8_t *pData, uint16_t Size, uint32_t Timeout);
-HAL_StatusTypeDef HAL_I2C_Slave_Receive(I2C_HandleTypeDef *hi2c, uint8_t *pData, uint16_t Size, uint32_t Timeout);
 
 #endif // HAL_MOCK_I2C_H
