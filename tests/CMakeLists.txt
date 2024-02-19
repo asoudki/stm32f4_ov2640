@@ -8,6 +8,7 @@ set(TEST_LIBRARIES
     test_hal_mock_general
     test_hal_mock_gpio
     test_hal_mock_i2c
+    test_hal_mock_spi
     # Add more test libraries as needed
 )
 
