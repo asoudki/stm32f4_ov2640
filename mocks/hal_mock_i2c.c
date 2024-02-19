@@ -3,13 +3,7 @@
 
 #include <string.h>
 
-// I2C slave and data for current transaction
-I2C_Mock_Slave I2C_Mock_Slave_Instance;
-
-// Global error code used to inject errors into I2C HAL transactions
-uint32_t I2C_Injected_Error = HAL_I2C_ERROR_NONE;
-
-// Helper function to check if the provided I2C handle is good to init/deinit
+// Check for common errors in the I2C HAL before proceeding with a I2C HAL function
 static HAL_StatusTypeDef common_i2c_checks(I2C_HandleTypeDef *hi2c) {
     // Catch invalid I2C handle
     if (hi2c == NULL) {
@@ -18,181 +12,96 @@ static HAL_StatusTypeDef common_i2c_checks(I2C_HandleTypeDef *hi2c) {
     
     // Catch uninitialized HAL
     if (!hal_initialized) {
-        hi2c->ErrorCode = HAL_I2C_ERROR_HAL_UNITIALIZED;
+        hi2c->ErrorCode = HAL_I2C_ERROR_HAL_UNINITIALIZED;
         return HAL_ERROR;
-    }
-
-    // Catch invalid I2C instance
-    if (hi2c->Instance == NULL) {
-        hi2c->ErrorCode = HAL_I2C_ERROR_INVALID_INSTANCE;
-        return HAL_ERROR;
-    }
-
-    // Check if the I2C handle is already in use
-    if (hi2c->Lock == HAL_LOCKED) {
-        hi2c->ErrorCode = HAL_I2C_ERROR_BUSY;
-        return HAL_BUSY;
     }
 
     return HAL_OK; // No error
 }
 
+// Check for common errors in the I2C HAL before proceeding with a I2C HAL function that involves a transaction
 static HAL_StatusTypeDef common_i2c_master_transaction_checks(I2C_HandleTypeDef *hi2c, uint16_t DevAddress, uint8_t *pData, uint16_t Size) {
     // Check for null pData
     if(pData == NULL) {
         hi2c->ErrorCode = HAL_I2C_ERROR_NULL_PARAM;
         return HAL_ERROR;
     }
-
-    // Check for a mismatch in mocked slave address
-    if((hi2c->Instance->OAR != DevAddress) || (I2C_Mock_Slave_Instance.Address != DevAddress)) {
-        hi2c->ErrorCode = HAL_I2C_ERROR_AF;
+    
+    // Catch I2C in a non-ready state
+    if(hi2c->State == HAL_I2C_STATE_RESET) {
+        hi2c->ErrorCode = HAL_I2C_ERROR_UNINITIALIZED;
         return HAL_ERROR;
     }
-    
-    // Ensure the peripheral is not busy before transmitting or receiving
-    if(hi2c->State != HAL_I2C_STATE_READY) {
+    else if(hi2c->State == HAL_I2C_STATE_BUSY) {
         hi2c->ErrorCode = HAL_I2C_ERROR_BUSY;
         return HAL_BUSY;
     }
-
-    // Check if an injected error should otherwise be returned
-    if(I2C_Injected_Error != HAL_I2C_ERROR_NONE) {
-        hi2c->ErrorCode = I2C_Injected_Error;
+    else if(hi2c->State == HAL_I2C_STATE_ERROR) {
+        hi2c->ErrorCode = HAL_I2C_ERROR_FAILSTATE;
         return HAL_ERROR;
     }
+
+    // Check for invalid data in the slave device set for the transaction
+    if((hi2c->XferBuffPtr == NULL) || (hi2c->XferAddress != DevAddress) || (hi2c->XferSize != Size)) {
+        hi2c->ErrorCode = HAL_I2C_ERROR_BAD_SLAVE;
+        return HAL_ERROR;
+    }
+
+    return HAL_OK;
 }
 
-// Helper function to reset I2C mock instance
-static void reset_i2c_instance(I2C_TypeDef *i2cInstance) {
-    i2cInstance->DR = 0;
-    i2cInstance->OAR = 0;
-}
-
-// Reset the I2C handle to a default state
-HAL_StatusTypeDef Reset_I2C_Handle(I2C_HandleTypeDef *hi2c) {
-    // Perform common checks for I2C handle reset
+// Set the I2C slave device for the current master transaction; HAL_I2C_Master_Transmit or HAL_I2C_Master_Receive will use this buffer
+// Can create a dangling pointer if pointer for current buffer falls out of scope
+HAL_StatusTypeDef Set_I2C_Mock_Slave(I2C_HandleTypeDef *hi2c, uint16_t DevAddress, uint8_t *pData, uint16_t Size) {
+    // Check for common errors
     HAL_StatusTypeDef status = common_i2c_checks(hi2c);
-    if (status != HAL_OK) {
+    if(status != HAL_OK) {
         return status;
     }
-
-    // Lock the I2C handle while in use
-    hi2c->Lock = HAL_LOCKED;
-    {
-      // Reset the I2C mock instance
-      reset_i2c_instance(hi2c->Instance);
-
-      // Reset handle state, mode and error code
-      hi2c->State = HAL_I2C_STATE_RESET;
-      hi2c->Mode = HAL_I2C_MODE_NONE;
-      hi2c->ErrorCode = HAL_I2C_ERROR_NONE;
-    }
-    // Unlock the handle
-    hi2c->Lock = HAL_UNLOCKED;
-
-    return HAL_OK;
-}
-
-// Reset the I2C slave device for the current master transaction
-void Reset_I2C_Mock_Slave(void) {
-    I2C_Mock_Slave_Instance.Address = 0;
-    I2C_Mock_Slave_Instance.Buffer = NULL;
-    I2C_Mock_Slave_Instance.Size = 0;
-}
-
-// Get a copy of the I2C slave device for the current master transaction
-I2C_Mock_Slave Get_I2C_Mock_Slave(void) {
-    return I2C_Mock_Slave_Instance;
-}
-
-// Set the I2C slave device for the current master transaction
-// Should always be called before a master transaction; can create a dangling pointer if pointer for current buffer falls out of scope
-HAL_StatusTypeDef Set_I2C_Mock_Slave(I2C_HandleTypeDef *hi2c, uint16_t DevAddress, uint8_t *pData, uint16_t Size) {
-    // Check for null args
-    if(hi2c == NULL || pData == NULL) {
-        return HAL_ERROR;
-    }
     
-    // Check for invalid size
-    if(Size == 0 || Size > HAL_I2C_MOCK_BUFFER_SIZE) {
-        hi2c->ErrorCode = HAL_I2C_ERROR_SIZE;
-        return HAL_ERROR;
-    }
-
-    hi2c->Instance->OAR = DevAddress;
-    I2C_Mock_Slave_Instance.Address = DevAddress;
-    I2C_Mock_Slave_Instance.Buffer = pData;
-    I2C_Mock_Slave_Instance.Size = Size;
+    hi2c->XferAddress = DevAddress;
+    hi2c->XferBuffPtr = pData;
+    hi2c->XferSize = Size;
 
     return HAL_OK;
-}
-
-// Inject an error (including HAL_I2C_ERROR_NONE to clear error) into I2C transactions
-void Inject_I2C_Transaction_Error(uint32_t ErrorCode) {
-    I2C_Injected_Error = ErrorCode;
 }
 
 // Initializes the I2C peripheral
 HAL_StatusTypeDef HAL_I2C_Init(I2C_HandleTypeDef *hi2c) {
-    // Perform common checks for I2C handle initialization
+    // Check for common errors
     HAL_StatusTypeDef status = common_i2c_checks(hi2c);
     if (status != HAL_OK) {
         return status;
     }
 
-    // Ensure the peripheral is not already initialized before initializing
-    if (hi2c->State != HAL_I2C_STATE_RESET && hi2c->State != HAL_I2C_STATE_ERROR) {
-        hi2c->ErrorCode = HAL_I2C_ERROR_ALREADY_INITIALIZED;
-        return HAL_ERROR;
-    }
+    // Clear references to any previous slave buffer
+    hi2c->XferAddress = 0;
+    hi2c->XferBuffPtr = NULL;
+    hi2c->XferSize = 0;
 
-    // Check I2C instance parameters if they need to be used
-
-    // Lock the I2C handle while in use
-    hi2c->Lock = HAL_LOCKED;
-    {
-        // Reset the I2C mock instance
-        reset_i2c_instance(hi2c->Instance);
-
-        // Set state, mode and error code
-        hi2c->State = HAL_I2C_STATE_READY;
-        hi2c->Mode = HAL_I2C_MODE_NONE;
-        hi2c->ErrorCode = HAL_I2C_ERROR_NONE;
-    }
-    // Unlock the I2C handle when done using it
-    hi2c->Lock = HAL_UNLOCKED;
+    // Set I2C to a ready state; can perform transactions now
+    hi2c->State = HAL_I2C_STATE_READY;
+    hi2c->ErrorCode = HAL_I2C_ERROR_NONE;
 
     return HAL_OK;
 }
 
 // Deinitializes the I2C peripheral
 HAL_StatusTypeDef HAL_I2C_DeInit(I2C_HandleTypeDef *hi2c) {
-    // Perform common checks for I2C handle deinitialization
+    // Check for common errors
     HAL_StatusTypeDef status = common_i2c_checks(hi2c);
     if (status != HAL_OK) {
         return status;
     }
 
-    // Ensure the peripheral is not busy before deinitializing
-    if (hi2c->State != HAL_I2C_STATE_RESET && hi2c->State != HAL_I2C_STATE_READY) {
-        hi2c->ErrorCode = HAL_I2C_ERROR_BUSY;
-        return HAL_BUSY;
-    }
+    // Clear references to any previous slave buffer
+    hi2c->XferAddress = 0;
+    hi2c->XferBuffPtr = NULL;
+    hi2c->XferSize = 0;
 
-    // Lock the I2C handle while in use
-    hi2c->Lock = HAL_LOCKED;
-    {
-        // Reset the I2C mock instance
-        reset_i2c_instance(hi2c->Instance);
-
-        // Reset state, mode, and error code
-        hi2c->State = HAL_I2C_STATE_RESET;
-        hi2c->Mode = HAL_I2C_MODE_NONE;
-        hi2c->ErrorCode = HAL_I2C_ERROR_NONE;
-    }
-    // Unlock the I2C handle when done using it
-    hi2c->Lock = HAL_UNLOCKED;
+    // Set I2C to a reset state; cannot perform transactions now
+    hi2c->State = HAL_I2C_STATE_RESET;
+    hi2c->ErrorCode = HAL_I2C_ERROR_NONE;
 
     return HAL_OK;
 }
@@ -200,41 +109,22 @@ HAL_StatusTypeDef HAL_I2C_DeInit(I2C_HandleTypeDef *hi2c) {
 // Transmit in master mode an amount of data in blocking mode
 HAL_StatusTypeDef HAL_I2C_Master_Transmit(I2C_HandleTypeDef *hi2c, uint16_t DevAddress, uint8_t *pData, uint16_t Size, uint32_t Timeout)
 {
-    // Perform common checks for I2C handle master transmit
+    // Check for common errors
     HAL_StatusTypeDef status = common_i2c_checks(hi2c);
     if (status != HAL_OK) {
         return status;
     }
 
-    // Perform master transaction checks for I2C handle master transmit
-    status = common_i2c_master_transaction_checks(hi2c, DevAddress, pData, Size);
-    if (status != HAL_OK) {
-        return status;
+    // Check for common transaction errors
+    HAL_StatusTypeDef transaction_status = common_i2c_master_transaction_checks(hi2c, DevAddress, pData, Size);
+    if (transaction_status != HAL_OK) {
+        return transaction_status;
     }
 
-    // Lock the I2C handle while in use
-    hi2c->Lock = HAL_LOCKED;
-    {
-        // Set the I2C instance to busy
-        hi2c->State = HAL_I2C_STATE_BUSY_TX;
-
-        // Set the I2C instance to master mode
-        hi2c->Mode = HAL_I2C_MODE_MASTER;
-
-        // Copy input data to slave buffer to simulate transfer
-        hi2c->pBuff = pData;
-        hi2c->XferSize = Size;
-        memcpy(I2C_Mock_Slave_Instance.Buffer, hi2c->pBuff, hi2c->XferSize);
-        hi2c->XferCount = hi2c->XferSize;
-        hi2c->Instance->DR = hi2c->pBuff[Size-1];
-
-        // Reset state, mode and error code
-        hi2c->State = HAL_I2C_STATE_READY;
-        hi2c->Mode = HAL_I2C_MODE_NONE;
-        hi2c->ErrorCode = HAL_I2C_ERROR_NONE;
-    }
-    // Unlock the I2C handle when done using it
-    hi2c->Lock = HAL_UNLOCKED;
+    // Copy input data to slave buffer to simulate transfer
+    memcpy(hi2c->XferBuffPtr, pData, Size);
+    // Clear error code to indicate successful transfer
+    hi2c->ErrorCode = HAL_I2C_ERROR_NONE;
 
     return HAL_OK;
 }
@@ -242,41 +132,22 @@ HAL_StatusTypeDef HAL_I2C_Master_Transmit(I2C_HandleTypeDef *hi2c, uint16_t DevA
 // Receive in master mode an amount of data in blocking mode
 HAL_StatusTypeDef HAL_I2C_Master_Receive(I2C_HandleTypeDef *hi2c, uint16_t DevAddress, uint8_t *pData, uint16_t Size, uint32_t Timeout)
 {
-    // Perform common checks for I2C handle master receive
+    // Check for common errors
     HAL_StatusTypeDef status = common_i2c_checks(hi2c);
     if (status != HAL_OK) {
         return status;
     }
 
-    // Perform master transaction checks for I2C handle master receive
-    status = common_i2c_master_transaction_checks(hi2c, DevAddress, pData, Size);
-    if (status != HAL_OK) {
-        return status;
+    // Check for common transaction errors
+    HAL_StatusTypeDef transaction_status = common_i2c_master_transaction_checks(hi2c, DevAddress, pData, Size);
+    if (transaction_status != HAL_OK) {
+        return transaction_status;
     }
 
-    // Lock the I2C handle while in use
-    hi2c->Lock = HAL_LOCKED;
-    {
-        // Set the I2C instance to busy
-        hi2c->State = HAL_I2C_STATE_BUSY_RX;
-
-        // Set the I2C instance to master mode
-        hi2c->Mode = HAL_I2C_MODE_MASTER;
-
-        // Copy slave buffer to input buffer to simulate transfer
-        hi2c->pBuff = pData;
-        hi2c->XferSize = Size;
-        memcpy(hi2c->pBuff, I2C_Mock_Slave_Instance.Buffer, hi2c->XferSize);
-        hi2c->XferCount = hi2c->XferSize;
-        hi2c->Instance->DR = I2C_Mock_Slave_Instance.Buffer[Size-1];
-
-        // Reset state, mode and error code
-        hi2c->State = HAL_I2C_STATE_READY;
-        hi2c->Mode = HAL_I2C_MODE_NONE;
-        hi2c->ErrorCode = HAL_I2C_ERROR_NONE;
-    }
-    // Unlock the I2C handle when done using it
-    hi2c->Lock = HAL_UNLOCKED;
+    // Copy slave buffer data to input buffer to simulate transfer
+    memcpy(pData, hi2c->XferBuffPtr, Size);
+    // Clear error code to indicate successful transfer
+    hi2c->ErrorCode = HAL_I2C_ERROR_NONE;
 
     return HAL_OK;
 }
