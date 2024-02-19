@@ -63,22 +63,22 @@ void test_hal_spi_deinit_sets_state(void **state);
 
 // HAL_SPI_Transmit Tests
 void test_hal_spi_transmit_transfers_correctly(void **state);
-void test_hal_spi_transmit_correct_state(void **state);
+void test_hal_spi_transmit_sets_state(void **state);
 void test_hal_spi_transmit_bad_slave(void **state);
 
 // HAL_SPI_Transmit_DMA Tests
 void test_hal_spi_transmit_dma_transfers_correctly(void **state);
-void test_hal_spi_transmit_dma_correct_state(void **state);
+void test_hal_spi_transmit_dma_sets_state(void **state);
 void test_hal_spi_transmit_dma_bad_slave(void **state);
 
 // HAL_SPI_Receive Tests
 void test_hal_spi_receive_transfers_correctly(void **state);
-void test_hal_spi_receive_correct_state(void **state);
+void test_hal_spi_receive_sets_state(void **state);
 void test_hal_spi_receive_bad_slave(void **state);
 
 // HAL_SPI_Receive_DMA Tests
 void test_hal_spi_receive_dma_transfers_correctly(void **state);
-void test_hal_spi_receive_dma_correct_state(void **state);
+void test_hal_spi_receive_dma_sets_state(void **state);
 void test_hal_spi_receive_dma_bad_slave(void **state);
 
 #endif // TEST_HAL_MOCK_SPI_H

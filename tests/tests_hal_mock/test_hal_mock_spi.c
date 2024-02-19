@@ -39,28 +39,28 @@ const struct CMUnitTest hal_mock_spi_deinit_tests[NUM_HAL_MOCK_DEINIT_TESTS] = {
 // HAL_SPI_Transmit Tests
 const struct CMUnitTest hal_mock_transmit_tests[NUM_HAL_MOCK_TRANSMIT_TESTS] = {
     cmocka_unit_test(test_hal_spi_transmit_transfers_correctly),
-    cmocka_unit_test(test_hal_spi_transmit_correct_state),
+    cmocka_unit_test(test_hal_spi_transmit_sets_state),
     cmocka_unit_test(test_hal_spi_transmit_bad_slave)
 };
 
 // HAL_SPI_Transmit_DMA Tests
 const struct CMUnitTest hal_mock_transmit_dma_tests[NUM_HAL_MOCK_TRANSMIT_DMA_TESTS] = {
     cmocka_unit_test(test_hal_spi_transmit_dma_transfers_correctly),
-    cmocka_unit_test(test_hal_spi_transmit_dma_correct_state),
+    cmocka_unit_test(test_hal_spi_transmit_dma_sets_state),
     cmocka_unit_test(test_hal_spi_transmit_dma_bad_slave)
 };
 
 // HAL_SPI_Receive Tests
 const struct CMUnitTest hal_mock_receive_tests[NUM_HAL_MOCK_RECEIVE_TESTS] = {
     cmocka_unit_test(test_hal_spi_receive_transfers_correctly),
-    cmocka_unit_test(test_hal_spi_receive_correct_state),
+    cmocka_unit_test(test_hal_spi_receive_sets_state),
     cmocka_unit_test(test_hal_spi_receive_bad_slave)
 };
 
 // HAL_SPI_Receive_DMA Tests
 const struct CMUnitTest hal_mock_receive_dma_tests[NUM_HAL_MOCK_RECEIVE_DMA_TESTS] = {
     cmocka_unit_test(test_hal_spi_receive_dma_transfers_correctly),
-    cmocka_unit_test(test_hal_spi_receive_dma_correct_state),
+    cmocka_unit_test(test_hal_spi_receive_dma_sets_state),
     cmocka_unit_test(test_hal_spi_receive_dma_bad_slave)
 };
 
@@ -118,7 +118,7 @@ void test_common_spi_checks_no_hal_init(void **state) {
 
     // Assert: common_spi_checks should catch the uninitialized HAL and return an error
     assert_int_equal(rc, HAL_ERROR);
-    assert_int_equal(hspi.ErrorCode, HAL_SPI_ERROR_HAL_UNITIALIZED);
+    assert_int_equal(hspi.ErrorCode, HAL_SPI_ERROR_HAL_UNINITIALIZED);
 }
 
 // Test Case: Verify that common_spi_transaction_checks passes for an appropriately configured SPI handle
@@ -127,10 +127,11 @@ void test_common_spi_transaction_checks_returns_ok(void **state) {
     hal_initialized = 1;
     SPI_HandleTypeDef hspi;
     uint8_t pData[10];
+    uint8_t Slave[10];
     uint16_t Size = 10;
 
     HAL_SPI_Init(&hspi);
-    Set_SPI_Transmit_Mock_Slave(&hspi, pData, Size);
+    Set_SPI_Transmit_Mock_Slave(&hspi, Slave, Size);
 
     // Act: Call a function that uses the private common_spi_transaction_checks
     HAL_StatusTypeDef rc = HAL_SPI_Transmit(&hspi, pData, Size, HAL_MAX_DELAY);
@@ -140,18 +141,19 @@ void test_common_spi_transaction_checks_returns_ok(void **state) {
     assert_int_equal(hspi.ErrorCode, HAL_SPI_ERROR_NONE);
 }
 
-// Test Case: Verify that common_spi_transaction_checks fails for a null pData
+// Test Case: Verify that common_spi_transaction_checks fails for a null slave pointer
 void test_common_spi_transaction_checks_null_pdata(void **state) {
     // Arrange: Initialize HAL, create SPI handle and prepare for a transaction
     hal_initialized = 1;
     SPI_HandleTypeDef hspi;
     uint8_t pData[10];
+    uint8_t Slave[10];
     uint16_t Size = 10;
 
     HAL_SPI_Init(&hspi);
     Set_SPI_Transmit_Mock_Slave(&hspi, NULL, Size);
 
-    // Act: Call a function that uses the private common_spi_transaction_checks, but with a null pData
+    // Act: Call a function that uses the private common_spi_transaction_checks, but with a null slave pointer
     HAL_StatusTypeDef rc = HAL_SPI_Transmit(&hspi, NULL, Size, HAL_MAX_DELAY);
 
     // Assert: common_spi_transaction_checks should catch the null pData and return an error
@@ -165,15 +167,16 @@ void test_common_spi_transaction_checks_non_ready_state(void **state) {
     hal_initialized = 1;
     SPI_HandleTypeDef hspi1, hspi2, hspi3;
     uint8_t pData[10];
+    uint8_t Slave[10];
     uint16_t Size = 10;
 
     hspi1.State = HAL_SPI_STATE_RESET;
     hspi2.State = HAL_SPI_STATE_BUSY;
     hspi3.State = HAL_SPI_STATE_ERROR;
 
-    Set_SPI_Transmit_Mock_Slave(&hspi1, pData, Size);
-    Set_SPI_Transmit_Mock_Slave(&hspi2, pData, Size);
-    Set_SPI_Transmit_Mock_Slave(&hspi3, pData, Size);
+    Set_SPI_Transmit_Mock_Slave(&hspi1, Slave, Size);
+    Set_SPI_Transmit_Mock_Slave(&hspi2, Slave, Size);
+    Set_SPI_Transmit_Mock_Slave(&hspi3, Slave, Size);
 
     // Act: Call a function that uses the private common_spi_transaction_checks
     HAL_StatusTypeDef rc1 = HAL_SPI_Transmit(&hspi1, pData, Size, HAL_MAX_DELAY);
@@ -182,7 +185,7 @@ void test_common_spi_transaction_checks_non_ready_state(void **state) {
 
     // Assert: common_spi_transaction_checks should catch the non-ready states and return corresponding errors
     assert_int_equal(rc1, HAL_ERROR);
-    assert_int_equal(hspi1.ErrorCode, HAL_SPI_ERROR_UNITIALIZED);
+    assert_int_equal(hspi1.ErrorCode, HAL_SPI_ERROR_UNINITIALIZED);
     assert_int_equal(rc2, HAL_BUSY);
     assert_int_equal(hspi2.ErrorCode, HAL_SPI_ERROR_BUSY);
     assert_int_equal(rc3, HAL_ERROR);
@@ -194,15 +197,15 @@ void test_set_spi_transmit_mock_slave_sets_values(void **state) {
     // Arrange: Initialize HAL and create SPI handle and a buffer to pass in
     hal_initialized = 1;
     SPI_HandleTypeDef hspi;
-    uint8_t pData[10];
+    uint8_t Slave[10];
     uint16_t Size = 10;
 
     // Act: Call Set_SPI_Transmit_Mock_Slave with the buffer
-    HAL_StatusTypeDef rc = Set_SPI_Transmit_Mock_Slave(&hspi, pData, Size);
+    HAL_StatusTypeDef rc = Set_SPI_Transmit_Mock_Slave(&hspi, Slave, Size);
 
     // Assert: The values corresponding to the slave transmitted to should be set in the SPI handle
     assert_int_equal(rc, HAL_OK);
-    assert_int_equal(hspi.pTxBuffPtr, pData);
+    assert_int_equal(hspi.pTxBuffPtr, Slave);
     assert_int_equal(hspi.TxXferSize, Size);
 }
 
@@ -211,15 +214,15 @@ void test_set_spi_receive_mock_slave_sets_values(void **state) {
     // Arrange: Initialize HAL and create SPI handle and a buffer to pass in
     hal_initialized = 1;
     SPI_HandleTypeDef hspi;
-    uint8_t pData[10];
+    uint8_t Slave[10];
     uint16_t Size = 10;
 
     // Act: Call Set_SPI_Receive_Mock_Slave with the buffer
-    HAL_StatusTypeDef rc = Set_SPI_Receive_Mock_Slave(&hspi, pData, Size);
+    HAL_StatusTypeDef rc = Set_SPI_Receive_Mock_Slave(&hspi, Slave, Size);
 
     // Assert: The values corresponding to the slave received from should be set in the SPI handle
     assert_int_equal(rc, HAL_OK);
-    assert_int_equal(hspi.pRxBuffPtr, pData);
+    assert_int_equal(hspi.pRxBuffPtr, Slave);
     assert_int_equal(hspi.RxXferSize, Size);
 }
 
@@ -230,6 +233,10 @@ void test_hal_spi_init_sets_state(void **state) {
     SPI_HandleTypeDef hspi;
     hspi.State = HAL_SPI_STATE_RESET;
     hspi.ErrorCode = 32;
+    hspi.pTxBuffPtr = 1;
+    hspi.TxXferSize = 2;
+    hspi.pRxBuffPtr = 3;
+    hspi.RxXferSize = 4;
 
     // Act: Call HAL_SPI_Init
     HAL_StatusTypeDef rc = HAL_SPI_Init(&hspi);
@@ -238,6 +245,10 @@ void test_hal_spi_init_sets_state(void **state) {
     assert_int_equal(rc, HAL_OK);
     assert_int_equal(hspi.State, HAL_SPI_STATE_READY);
     assert_int_equal(hspi.ErrorCode, HAL_SPI_ERROR_NONE);
+    assert_int_equal(hspi.pTxBuffPtr, NULL);
+    assert_int_equal(hspi.TxXferSize, 0);
+    assert_int_equal(hspi.pRxBuffPtr, NULL);
+    assert_int_equal(hspi.RxXferSize, 0);
 }
 
 // Test Case: Verify that HAL_SPI_DeInit sets the state of the SPI handle to reset
@@ -247,6 +258,10 @@ void test_hal_spi_deinit_sets_state(void **state) {
     SPI_HandleTypeDef hspi;
     hspi.State = HAL_SPI_STATE_ERROR;
     hspi.ErrorCode = HAL_SPI_ERROR_BAD_SLAVE;
+    hspi.pTxBuffPtr = 1;
+    hspi.TxXferSize = 2;
+    hspi.pRxBuffPtr = 3;
+    hspi.RxXferSize = 4;
 
     // Act: Call HAL_SPI_DeInit
     HAL_StatusTypeDef rc = HAL_SPI_DeInit(&hspi);
@@ -255,6 +270,10 @@ void test_hal_spi_deinit_sets_state(void **state) {
     assert_int_equal(rc, HAL_OK);
     assert_int_equal(hspi.State, HAL_SPI_STATE_RESET);
     assert_int_equal(hspi.ErrorCode, HAL_SPI_ERROR_NONE);
+    assert_int_equal(hspi.pTxBuffPtr, NULL);
+    assert_int_equal(hspi.TxXferSize, 0);
+    assert_int_equal(hspi.pRxBuffPtr, NULL);
+    assert_int_equal(hspi.RxXferSize, 0);
 }
 
 // Test Case: Verify that HAL_SPI_Transmit transfers data correctly
@@ -278,7 +297,7 @@ void test_hal_spi_transmit_transfers_correctly(void **state) {
 }
 
 // Test Case: Verify that HAL_SPI_Transmit sets the state of the SPI handle back to a ready state afterwards
-void test_hal_spi_transmit_correct_state(void **state) {
+void test_hal_spi_transmit_sets_state(void **state) {
     // Arrange: Initialize HAL, create SPI handle and prepare for a transaction
     hal_initialized = 1;
     SPI_HandleTypeDef hspi;
@@ -310,7 +329,7 @@ void test_hal_spi_transmit_bad_slave(void **state) {
     // Slave isn't set
     HAL_SPI_Init(&hspi1);
 
-    // Slave is set but with null pData
+    // Slave is set but with null address
     HAL_SPI_Init(&hspi2);
     Set_SPI_Transmit_Mock_Slave(&hspi2, NULL, Size);
 
@@ -319,7 +338,7 @@ void test_hal_spi_transmit_bad_slave(void **state) {
     Set_SPI_Transmit_Mock_Slave(&hspi3, Slave, Size+1);
 
 
-    // Act: Call HAL_SPI_Transmit without setting a mock slave
+    // Act: Call HAL_SPI_Transmit with each handle
     HAL_StatusTypeDef rc1 = HAL_SPI_Transmit(&hspi1, pData, Size, HAL_MAX_DELAY);
     HAL_StatusTypeDef rc2 = HAL_SPI_Transmit(&hspi2, pData, Size, HAL_MAX_DELAY);
     HAL_StatusTypeDef rc3 = HAL_SPI_Transmit(&hspi3, pData, Size, HAL_MAX_DELAY);
@@ -354,7 +373,7 @@ void test_hal_spi_transmit_dma_transfers_correctly(void **state) {
 }
 
 // Test Case: Verify that HAL_SPI_Transmit_DMA sets the state of the SPI handle back to a ready state afterwards
-void test_hal_spi_transmit_dma_correct_state(void **state) {
+void test_hal_spi_transmit_dma_sets_state(void **state) {
     // Arrange: Initialize HAL, create SPI handle and prepare for a transaction
     hal_initialized = 1;
     SPI_HandleTypeDef hspi;
@@ -429,7 +448,7 @@ void test_hal_spi_receive_transfers_correctly(void **state) {
 }
 
 // Test Case: Verify that HAL_SPI_Receive sets the state of the SPI handle back to a ready state afterwards
-void test_hal_spi_receive_correct_state(void **state) {
+void test_hal_spi_receive_sets_state(void **state) {
     // Arrange: Initialize HAL, create SPI handle and prepare for a transaction
     hal_initialized = 1;
     SPI_HandleTypeDef hspi;
@@ -504,7 +523,7 @@ void test_hal_spi_receive_dma_transfers_correctly(void **state) {
 }
 
 // Test Case: Verify that HAL_SPI_Receive_DMA sets the state of the SPI handle back to a ready state afterwards
-void test_hal_spi_receive_dma_correct_state(void **state) {
+void test_hal_spi_receive_dma_sets_state(void **state) {
     // Arrange: Initialize HAL, create SPI handle and prepare for a transaction
     hal_initialized = 1;
     SPI_HandleTypeDef hspi;

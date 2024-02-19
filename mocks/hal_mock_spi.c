@@ -11,7 +11,7 @@ static HAL_StatusTypeDef common_spi_checks(SPI_HandleTypeDef *hspi) {
 
   // Catch uninitialized HAL
   if(!hal_initialized) {
-    hspi->ErrorCode = HAL_SPI_ERROR_HAL_UNITIALIZED;
+    hspi->ErrorCode = HAL_SPI_ERROR_HAL_UNINITIALIZED;
     return HAL_ERROR;
   }
 
@@ -28,7 +28,7 @@ static HAL_StatusTypeDef common_spi_transaction_checks(SPI_HandleTypeDef *hspi, 
 
   // Catch SPI in a non-ready state
   if(hspi->State == HAL_SPI_STATE_RESET) {
-    hspi->ErrorCode = HAL_SPI_ERROR_UNITIALIZED;
+    hspi->ErrorCode = HAL_SPI_ERROR_UNINITIALIZED;
     return HAL_ERROR;
   }
   else if(hspi->State == HAL_SPI_STATE_BUSY) {
@@ -45,6 +45,7 @@ static HAL_StatusTypeDef common_spi_transaction_checks(SPI_HandleTypeDef *hspi, 
 
 // Set a mock buffer as a slave; HAL_SPI_Transmit or HAL_SPI_Transmit_DMA will copy to this buffer
 // This function is used in the absence of setting the CS pin to avoid cross-dependencies with GPIO in mock
+// Can create a dangling pointer if pointer for current buffer falls out of scope
 HAL_StatusTypeDef Set_SPI_Transmit_Mock_Slave(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size) {
   // Check for common errors
   HAL_StatusTypeDef status = common_spi_checks(hspi);
@@ -61,6 +62,7 @@ HAL_StatusTypeDef Set_SPI_Transmit_Mock_Slave(SPI_HandleTypeDef *hspi, uint8_t *
 
 // Set a mock buffer as a slave; HAL_SPI_Receive or HAL_SPI_Receive_DMA will copy from this buffer
 // This function is used in the absence of setting the CS pin to avoid cross-dependencies with GPIO in mock
+// Can create a dangling pointer if pointer for current buffer falls out of scope
 HAL_StatusTypeDef Set_SPI_Receive_Mock_Slave(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size) {
   // Check for common errors
   HAL_StatusTypeDef status = common_spi_checks(hspi);
@@ -86,6 +88,12 @@ HAL_StatusTypeDef HAL_SPI_Init(SPI_HandleTypeDef *hspi) {
         return status;
     }
 
+    // Clear references to any previous slave buffer
+    hspi->pRxBuffPtr = NULL;
+    hspi->RxXferSize = 0;
+    hspi->pTxBuffPtr = NULL;
+    hspi->TxXferSize = 0;
+
     // Set SPI to a ready state; can perform transactions now
     hspi->State = HAL_SPI_STATE_READY;
     hspi->ErrorCode = HAL_SPI_ERROR_NONE;
@@ -100,6 +108,12 @@ HAL_StatusTypeDef HAL_SPI_DeInit(SPI_HandleTypeDef *hspi) {
     if (status != HAL_OK) {
         return status;
     }
+
+    // Clear references to any previous slave buffer
+    hspi->pRxBuffPtr = NULL;
+    hspi->RxXferSize = 0;
+    hspi->pTxBuffPtr = NULL;
+    hspi->TxXferSize = 0;
 
     // Set SPI to a reset state; cannot perform transactions now
     hspi->State = HAL_SPI_STATE_RESET;

@@ -4,14 +4,14 @@
 
 #include "hal_mock_general.h"
 
-#define HAL_SPI_ERROR_NONE              0U    // No error
-#define HAL_SPI_ERROR_HAL_UNITIALIZED   10U    // HAL uninitialized error
+#define HAL_SPI_ERROR_NONE                0U    // No error
+#define HAL_SPI_ERROR_HAL_UNINITIALIZED     10U    // HAL uninitialized error
 
-#define HAL_SPI_ERROR_NULL_PARAM        100U    // SPI null parameter error
-#define HAL_SPI_ERROR_UNITIALIZED       101U    // SPI uninitialized error
-#define HAL_SPI_ERROR_BUSY              102U    // SPI busy error
-#define HAL_SPI_ERROR_FAILSTATE         103U    // SPI failstate error
-#define HAL_SPI_ERROR_BAD_SLAVE         104U    // SPI bad slave error
+#define HAL_SPI_ERROR_NULL_PARAM          100U    // SPI null parameter error
+#define HAL_SPI_ERROR_UNINITIALIZED       101U    // SPI uninitialized error
+#define HAL_SPI_ERROR_BUSY                102U    // SPI busy error
+#define HAL_SPI_ERROR_FAILSTATE           103U    // SPI failstate error
+#define HAL_SPI_ERROR_BAD_SLAVE           104U    // SPI bad slave error
 
 // Mocked SPI typedefs
 typedef enum
