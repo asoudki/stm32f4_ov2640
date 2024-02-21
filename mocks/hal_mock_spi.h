@@ -5,13 +5,15 @@
 #include "hal_mock_general.h"
 
 #define HAL_SPI_ERROR_NONE                0U    // No error
-#define HAL_SPI_ERROR_HAL_UNINITIALIZED     10U    // HAL uninitialized error
+#define HAL_SPI_ERROR_HAL_UNINITIALIZED   10U    // HAL uninitialized error
 
 #define HAL_SPI_ERROR_NULL_PARAM          100U    // SPI null parameter error
 #define HAL_SPI_ERROR_UNINITIALIZED       101U    // SPI uninitialized error
 #define HAL_SPI_ERROR_BUSY                102U    // SPI busy error
 #define HAL_SPI_ERROR_FAILSTATE           103U    // SPI failstate error
-#define HAL_SPI_ERROR_BAD_SLAVE           104U    // SPI bad slave error
+#define HAL_SPI_ERROR_MSG_TOO_BIG         104U    // SPI message too big error
+
+#define MOCK_SPI_MAX_MSG_SIZE             256U    // Maximum I2C transfer size
 
 // Mocked SPI typedefs
 typedef enum
@@ -24,17 +26,13 @@ typedef enum
 
 typedef struct __SPI_HandleTypeDef
 {
-  uint8_t                    *pTxBuffPtr;               /*!< Pointer to SPI Tx transfer Buffer        */
-  uint16_t                   TxXferSize;                /*!< SPI Tx Transfer size                     */
-  uint8_t                    *pRxBuffPtr;               /*!< Pointer to SPI Rx transfer Buffer        */
-  uint16_t                   RxXferSize;                /*!< SPI Rx Transfer size                     */
-  __IO HAL_SPI_StateTypeDef  State;                     /*!< SPI communication state                  */
-  __IO uint32_t              ErrorCode;                 /*!< SPI Error code                           */
+  uint8_t                    TxMsgBuff[MOCK_SPI_MAX_MSG_SIZE];     // SPI TX transfer message buffer
+  uint16_t                   TxMsgSize;                            // SPI TX transfer message size
+  uint8_t                    RxMsgBuff[MOCK_SPI_MAX_MSG_SIZE];     // SPI RX transfer message buffer
+  uint16_t                   RxMsgSize;                            // SPI RX transfer message size
+  __IO HAL_SPI_StateTypeDef  State;                                // SPI communication state
+  __IO uint32_t              ErrorCode;                            // SPI Error code
 } SPI_HandleTypeDef;
-
-// Functions specific to the mock implementation
-HAL_StatusTypeDef Set_SPI_Transmit_Mock_Slave(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size);
-HAL_StatusTypeDef Set_SPI_Receive_Mock_Slave(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size);
 
 // Mocked SPI functions
 HAL_StatusTypeDef HAL_SPI_Init(SPI_HandleTypeDef *hspi);

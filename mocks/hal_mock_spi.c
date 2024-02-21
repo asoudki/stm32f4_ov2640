@@ -40,43 +40,14 @@ static HAL_StatusTypeDef common_spi_transaction_checks(SPI_HandleTypeDef *hspi, 
     return HAL_ERROR;
   }
 
+  // Check if the size of the message is too big for the mock msg buffer
+  if(Size >= MOCK_SPI_MAX_MSG_SIZE) {
+    hspi->ErrorCode = HAL_SPI_ERROR_MSG_TOO_BIG;
+    return HAL_ERROR;
+  }
+
   return HAL_OK; // No error
 }
-
-// Set a mock buffer as a slave; HAL_SPI_Transmit or HAL_SPI_Transmit_DMA will copy to this buffer
-// This function is used in the absence of setting the CS pin to avoid cross-dependencies with GPIO in mock
-// Can create a dangling pointer if pointer for current buffer falls out of scope
-HAL_StatusTypeDef Set_SPI_Transmit_Mock_Slave(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size) {
-  // Check for common errors
-  HAL_StatusTypeDef status = common_spi_checks(hspi);
-  if(status != HAL_OK) {
-    return status;
-  }
-
-  // Set the SPI handle to the mock slave buffer
-  hspi->pTxBuffPtr = pData;
-  hspi->TxXferSize = Size;
-
-  return HAL_OK;
-}
-
-// Set a mock buffer as a slave; HAL_SPI_Receive or HAL_SPI_Receive_DMA will copy from this buffer
-// This function is used in the absence of setting the CS pin to avoid cross-dependencies with GPIO in mock
-// Can create a dangling pointer if pointer for current buffer falls out of scope
-HAL_StatusTypeDef Set_SPI_Receive_Mock_Slave(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size) {
-  // Check for common errors
-  HAL_StatusTypeDef status = common_spi_checks(hspi);
-  if(status != HAL_OK) {
-    return status;
-  }
-
-  // Set the SPI handle to the mock slave buffer
-  hspi->pRxBuffPtr = pData;
-  hspi->RxXferSize = Size;
-
-  return HAL_OK;
-}
-
 
 // Initializes the SPI peripheral
 // Assumes a default configuration (master, 8-bit data size, 2 lines, low polarity, 1 edge phase, software NSS, MSB first, TI mode disabled, and CRC calculation disabled) to focus on logic
@@ -88,11 +59,11 @@ HAL_StatusTypeDef HAL_SPI_Init(SPI_HandleTypeDef *hspi) {
         return status;
     }
 
-    // Clear references to any previous slave buffer
-    hspi->pRxBuffPtr = NULL;
-    hspi->RxXferSize = 0;
-    hspi->pTxBuffPtr = NULL;
-    hspi->TxXferSize = 0;
+    // Clear data relating to any previous messages
+    memset(hspi->TxMsgBuff, 0, sizeof(hspi->TxMsgBuff));
+    hspi->TxMsgSize = 0;
+    memset(hspi->RxMsgBuff, 0, sizeof(hspi->RxMsgBuff));
+    hspi->RxMsgSize = 0;
 
     // Set SPI to a ready state; can perform transactions now
     hspi->State = HAL_SPI_STATE_READY;
@@ -109,11 +80,11 @@ HAL_StatusTypeDef HAL_SPI_DeInit(SPI_HandleTypeDef *hspi) {
         return status;
     }
 
-    // Clear references to any previous slave buffer
-    hspi->pRxBuffPtr = NULL;
-    hspi->RxXferSize = 0;
-    hspi->pTxBuffPtr = NULL;
-    hspi->TxXferSize = 0;
+    // Clear data relating to any previous messages
+    memset(hspi->TxMsgBuff, 0, sizeof(hspi->TxMsgBuff));
+    hspi->TxMsgSize = 0;
+    memset(hspi->RxMsgBuff, 0, sizeof(hspi->RxMsgBuff));
+    hspi->RxMsgSize = 0;
 
     // Set SPI to a reset state; cannot perform transactions now
     hspi->State = HAL_SPI_STATE_RESET;
@@ -137,14 +108,11 @@ HAL_StatusTypeDef HAL_SPI_Transmit(SPI_HandleTypeDef *hspi, uint8_t *pData, uint
         return transaction_status;
     }
 
-    // Check that the mock slave set by Set_SPI_Transmit_Mock_Slave is a valid buffer of the same size as input data
-    if(hspi->pTxBuffPtr == NULL || hspi->TxXferSize != Size) {
-      hspi->ErrorCode = HAL_SPI_ERROR_BAD_SLAVE;
-      return HAL_ERROR;
-    }
+    // Record data corresponding to the transaction
+    hspi->TxMsgSize = Size;
 
-    // Copy input data to slave buffer to simulate transfer
-    memcpy(hspi->pTxBuffPtr, pData, Size);
+    // Simulate transaction by copying data to the message buffer, access using TxMsgBuff and TxMsgSize
+    memcpy(hspi->TxMsgBuff, pData, Size);
     // Clear error code to indicate successful transfer
     hspi->ErrorCode = HAL_SPI_ERROR_NONE;
 
@@ -172,14 +140,11 @@ HAL_StatusTypeDef HAL_SPI_Receive(SPI_HandleTypeDef *hspi, uint8_t *pData, uint1
         return transaction_status;
     }
 
-    // Check that the mock slave set by Set_SPI_Receive_Mock_Slave is a valid buffer of the same size as input data
-    if(hspi->pRxBuffPtr == NULL || hspi->RxXferSize != Size) {
-      hspi->ErrorCode = HAL_SPI_ERROR_BAD_SLAVE;
-      return HAL_ERROR;
-    }
+    // Record data corresponding to the transaction
+    hspi->RxMsgSize = Size;
 
-    // Copy input data to slave buffer to simulate transfer
-    memcpy(pData, hspi->pRxBuffPtr, Size);
+    // Simulate transaction by copying data to the message buffer, access using RxMsgBuff and RxMsgSize
+    memcpy(pData, hspi->RxMsgBuff, Size);
     // Clear error code to indicate successful transfer
     hspi->ErrorCode = HAL_SPI_ERROR_NONE;
 

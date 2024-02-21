@@ -41,27 +41,11 @@ static HAL_StatusTypeDef common_i2c_master_transaction_checks(I2C_HandleTypeDef 
         return HAL_ERROR;
     }
 
-    // Check for invalid data in the slave device set for the transaction
-    if((hi2c->XferBuffPtr == NULL) || (hi2c->XferAddress != DevAddress) || (hi2c->XferSize != Size)) {
-        hi2c->ErrorCode = HAL_I2C_ERROR_BAD_SLAVE;
+    // Check if the size of the message is too big for the mock msg buffer
+    if(Size >= MOCK_I2C_MAX_MSG_SIZE) {
+        hi2c->ErrorCode = HAL_I2C_ERROR_MSG_TOO_BIG;
         return HAL_ERROR;
     }
-
-    return HAL_OK;
-}
-
-// Set the I2C slave device for the current master transaction; HAL_I2C_Master_Transmit or HAL_I2C_Master_Receive will use this buffer
-// Can create a dangling pointer if pointer for current buffer falls out of scope
-HAL_StatusTypeDef Set_I2C_Mock_Slave(I2C_HandleTypeDef *hi2c, uint16_t DevAddress, uint8_t *pData, uint16_t Size) {
-    // Check for common errors
-    HAL_StatusTypeDef status = common_i2c_checks(hi2c);
-    if(status != HAL_OK) {
-        return status;
-    }
-    
-    hi2c->XferAddress = DevAddress;
-    hi2c->XferBuffPtr = pData;
-    hi2c->XferSize = Size;
 
     return HAL_OK;
 }
@@ -74,10 +58,10 @@ HAL_StatusTypeDef HAL_I2C_Init(I2C_HandleTypeDef *hi2c) {
         return status;
     }
 
-    // Clear references to any previous slave buffer
+    // Clear data relating to any previous messages
     hi2c->XferAddress = 0;
-    hi2c->XferBuffPtr = NULL;
-    hi2c->XferSize = 0;
+    memset(hi2c->MsgBuff, 0, sizeof(hi2c->MsgBuff));
+    hi2c->MsgSize = 0;
 
     // Set I2C to a ready state; can perform transactions now
     hi2c->State = HAL_I2C_STATE_READY;
@@ -94,10 +78,10 @@ HAL_StatusTypeDef HAL_I2C_DeInit(I2C_HandleTypeDef *hi2c) {
         return status;
     }
 
-    // Clear references to any previous slave buffer
+    // Clear data relating to any previous messages
     hi2c->XferAddress = 0;
-    hi2c->XferBuffPtr = NULL;
-    hi2c->XferSize = 0;
+    memset(hi2c->MsgBuff, 0, sizeof(hi2c->MsgBuff));
+    hi2c->MsgSize = 0;
 
     // Set I2C to a reset state; cannot perform transactions now
     hi2c->State = HAL_I2C_STATE_RESET;
@@ -121,8 +105,12 @@ HAL_StatusTypeDef HAL_I2C_Master_Transmit(I2C_HandleTypeDef *hi2c, uint16_t DevA
         return transaction_status;
     }
 
-    // Copy input data to slave buffer to simulate transfer
-    memcpy(hi2c->XferBuffPtr, pData, Size);
+    // Record data corresponding to the transaction
+    hi2c->XferAddress = DevAddress;
+    hi2c->MsgSize = Size;
+
+    // Simulate transaction by copying data to the message buffer, access using MsgBuff and MsgSize
+    memcpy(hi2c->MsgBuff, pData, Size);
     // Clear error code to indicate successful transfer
     hi2c->ErrorCode = HAL_I2C_ERROR_NONE;
 
@@ -144,8 +132,13 @@ HAL_StatusTypeDef HAL_I2C_Master_Receive(I2C_HandleTypeDef *hi2c, uint16_t DevAd
         return transaction_status;
     }
 
-    // Copy slave buffer data to input buffer to simulate transfer
-    memcpy(pData, hi2c->XferBuffPtr, Size);
+    // Record data corresponding to the transaction
+    hi2c->XferAddress = DevAddress;
+    hi2c->MsgSize = Size;
+
+    // Simulate transaction by copying data from the message buffer to the input buffer, access using pData and MsgSize
+    // pData should ideally be a 256 element array
+    memcpy(pData, hi2c->MsgBuff, Size);
     // Clear error code to indicate successful transfer
     hi2c->ErrorCode = HAL_I2C_ERROR_NONE;
 

@@ -23,9 +23,7 @@ void HAL_Delay(uint32_t Delay) {
   uint32_t startTime = hal_current_time;
 
   // Simulate the passage of time
-  for(uint32_t elapsedTime=0; elapsedTime<Delay; elapsedTime++) {
-    // Simulate 1 millisecond delay
-    usleep(1000);
-    hal_current_time++;
-  }
+  hal_current_time += Delay;
+  // Sleep for the duration of the delay
+  usleep(Delay * 1000);
 }
