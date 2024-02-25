@@ -3,12 +3,16 @@
 # Get test libraries from tests_hal_mock directory
 add_subdirectory(tests_hal_mock)
 
+# Get test libraries from tests_ov2640 directory
+add_subdirectory(tests_ov2640)
+
 # Define a list of test library names
 set(TEST_LIBRARIES
     test_hal_mock_general
     test_hal_mock_gpio
     test_hal_mock_i2c
     test_hal_mock_spi
+    test_ov2640
     # Add more test libraries as needed
 )
 
