@@ -12,16 +12,19 @@
 #define HAL_I2C_ERROR_BUSY                102U    // I2C busy error
 #define HAL_I2C_ERROR_FAILSTATE           103U    // I2C failstate error
 #define HAL_I2C_ERROR_MSG_TOO_BIG         104U    // I2C message too big error
+#define HAL_I2C_ERROR_TIMEOUT             105U    // I2C timeout error
+#define HAL_I2C_ERROR_SIZE_MISMATCH       106U    // I2C size mismatch error
 
 #define MOCK_I2C_MAX_MSG_SIZE             256U    // Maximum I2C transfer size
 
 // I2C state enumeration
 typedef enum
 {
-  HAL_I2C_STATE_RESET             = 0x00U,   /*!< Peripheral is not yet Initialized         */
-  HAL_I2C_STATE_READY             = 0x20U,   /*!< Peripheral Initialized and ready for use  */
-  HAL_I2C_STATE_BUSY              = 0x24U,   /*!< An internal process is ongoing            */
-  HAL_I2C_STATE_ERROR             = 0xE0U    /*!< Error                                     */
+  HAL_I2C_STATE_RESET             = 0U,   /*!< Peripheral is not yet Initialized         */
+  HAL_I2C_STATE_READY             = 1U,   /*!< Peripheral Initialized and ready for use  */
+  HAL_I2C_STATE_BUSY_TX           = 2U,   /*!< Data Transmission process is ongoing      */
+  HAL_I2C_STATE_BUSY_RX           = 3U,   /*!< Data Reception process is ongoing         */
+  HAL_I2C_STATE_ERROR             = 4U    /*!< Error                                     */
 } HAL_I2C_StateTypeDef;
 
 // I2C handle structure
@@ -38,5 +41,9 @@ HAL_StatusTypeDef HAL_I2C_Init(I2C_HandleTypeDef *hi2c);
 HAL_StatusTypeDef HAL_I2C_DeInit(I2C_HandleTypeDef *hi2c);
 HAL_StatusTypeDef HAL_I2C_Master_Transmit(I2C_HandleTypeDef *hi2c, uint16_t DevAddress, uint8_t *pData, uint16_t Size, uint32_t Timeout);
 HAL_StatusTypeDef HAL_I2C_Master_Receive(I2C_HandleTypeDef *hi2c, uint16_t DevAddress, uint8_t *pData, uint16_t Size, uint32_t Timeout);
+
+// Functions for slave device interactivity with the mock I2C
+HAL_StatusTypeDef Mock_I2C_Slave_Transmit(I2C_HandleTypeDef *hi2c, uint8_t *pData, uint16_t Size, uint32_t Timeout);
+HAL_StatusTypeDef Mock_I2C_Slave_Receive(I2C_HandleTypeDef *hi2c, uint8_t *pData, uint16_t Size, uint32_t Timeout);
 
 #endif // HAL_MOCK_I2C_H

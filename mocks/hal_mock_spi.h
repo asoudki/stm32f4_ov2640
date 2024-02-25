@@ -12,6 +12,8 @@
 #define HAL_SPI_ERROR_BUSY                102U    // SPI busy error
 #define HAL_SPI_ERROR_FAILSTATE           103U    // SPI failstate error
 #define HAL_SPI_ERROR_MSG_TOO_BIG         104U    // SPI message too big error
+#define HAL_SPI_ERROR_TIMEOUT             105U    // SPI timeout error
+#define HAL_SPI_ERROR_SIZE_MISMATCH       106U    // SPI size mismatch error
 
 #define MOCK_SPI_MAX_MSG_SIZE             256U    // Maximum I2C transfer size
 
@@ -20,8 +22,9 @@ typedef enum
 {
   HAL_SPI_STATE_RESET      = 0U,    /*!< Peripheral not Initialized                         */
   HAL_SPI_STATE_READY      = 1U,    /*!< Peripheral Initialized and ready for use           */
-  HAL_SPI_STATE_BUSY       = 2U,    /*!< an internal process is ongoing                     */
-  HAL_SPI_STATE_ERROR      = 3U,    /*!< SPI error state                                    */
+  HAL_SPI_STATE_BUSY_TX    = 2U,    /*!< Data Transmission process is ongoing               */
+  HAL_SPI_STATE_BUSY_RX    = 3U,    /*!< Data Reception process is ongoing                  */
+  HAL_SPI_STATE_ERROR      = 4U,    /*!< SPI error state                                    */
 } HAL_SPI_StateTypeDef;
 
 typedef struct __SPI_HandleTypeDef
@@ -41,5 +44,9 @@ HAL_StatusTypeDef HAL_SPI_Transmit(SPI_HandleTypeDef *hspi, uint8_t *pData, uint
 HAL_StatusTypeDef HAL_SPI_Transmit_DMA(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size);
 HAL_StatusTypeDef HAL_SPI_Receive(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size, uint32_t Timeout);
 HAL_StatusTypeDef HAL_SPI_Receive_DMA(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size);
+
+// Functions for slave device interactivity with the mock SPI
+HAL_StatusTypeDef Mock_SPI_Slave_Transmit(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size, uint32_t Timeout);
+HAL_StatusTypeDef Mock_SPI_Slave_Receive(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size, uint32_t Timeout);
 
 #endif  // HAL_MOCK_SPI_H
